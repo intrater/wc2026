@@ -14,7 +14,7 @@ depth: deep
 
 ---
 
-## 0. Build & Operational Status (updated 2026-05-31, end of day)
+## 0. Build & Operational Status (updated 2026-06-01)
 
 **All 11 implementation units are code-complete, committed, and deployed.** 28 tests passing.
 
@@ -29,11 +29,18 @@ depth: deep
 - ✅ Auth + email: Gmail SMTP wired for magic links + receipts; test sign-in email delivered; email templates customized
 - ✅ All routes deploy and serve; `/pick` + `/admin` correctly gated
 
+**API-Football ingest — DONE & verified end-to-end (2026-06-01):**
+- ✅ Subscribed Pro; `API_FOOTBALL_KEY` set in `.env.local` + Vercel production (encrypted).
+- ✅ Live sync run via `/api/poll`: **48/48 teams matched, 0 unmatched, 72 group fixtures upserted, 0 unknown rounds**. DB shows 12 groups A–L × 4, all `api_id` set.
+- ✅ Name matching verified against live names; added `Cape Verde Islands` alias.
+- 🐛 Fixed: the standings `"Ranking of third-placed teams"` block was clobbering `group_label` for currently-3rd teams (`lib/api-football/ingest.ts`).
+- ⚠️ **Production cron needs a redeploy** to pick up the new env var (local sync proved the path; scheduled prod run uses the deployment's env snapshot).
+- ⚠️ **Knockout fixtures not published yet** (only 72 group matches exist). `mapRound` handles R32/R16/… in code but can't be verified vs. live data until ~late June — re-check then.
+
 **Remaining to go fully live (pick up here):**
-1. **API-Football key** — subscribe to Pro, set `API_FOOTBALL_KEY` in `.env.local` + Vercel, run a live sync (admin → "Sync results now" or `/api/poll`), then **verify team-name matching** and add any missing aliases in `lib/api-football/names.ts`. *(This is the one piece not yet tested end-to-end.)*
-2. **Confirm sign-in round-trip** — tap the magic link, confirm it lands on `/pick` signed in.
-3. **Admin one-time setup** (`/admin`): set the **kickoff lock time**; review the tier board and **freeze tiers** (⚠️ irreversible).
-4. **Optional:** connect GitHub→Vercel for auto-deploy on push; add a custom domain.
+1. **Confirm sign-in round-trip** — tap the magic link, confirm it lands on `/pick` signed in.
+2. **Admin one-time setup** (`/admin`): set the **kickoff lock time**; review the tier board and **freeze tiers** (⚠️ irreversible).
+3. **Optional:** connect GitHub→Vercel for auto-deploy on push; add a custom domain.
 
 ---
 
