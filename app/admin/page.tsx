@@ -95,6 +95,26 @@ export default async function AdminPage() {
       <section className="rounded-2xl bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold">Match results</h2>
         <p className="mb-3 text-xs text-neutral-500">Manual overrides stick — the feed won&apos;t overwrite them until you clear the override.</p>
+        {(() => {
+          const flagged = (matches ?? []).filter((m) => m.needs_attention);
+          if (flagged.length === 0) return null;
+          return (
+            <div className="mb-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900">
+              ⚠️ <strong>{flagged.length}</strong> match{flagged.length === 1 ? "" : "es"} need attention — an unrecognized round means they were <strong>not scored</strong>. Set the result + winner manually below:
+              <ul className="mt-1 list-disc pl-5">
+                {flagged.map((m) => {
+                  const h = m.home_team_id ? teamMap.get(m.home_team_id) : undefined;
+                  const a = m.away_team_id ? teamMap.get(m.away_team_id) : undefined;
+                  return (
+                    <li key={m.fixture_id}>
+                      {h?.name ?? "?"} vs {a?.name ?? "?"} <span className="text-amber-700">(#{m.fixture_id})</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })()}
         {(matches ?? []).length === 0 ? (
           <p className="text-sm text-neutral-500">No matches yet. They appear after the first results sync.</p>
         ) : (
