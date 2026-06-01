@@ -25,6 +25,7 @@ export const NAME_ALIASES: Record<string, string> = {
   bosniaherzegovina: "Bosnia and Herzegovina",
   cotedivoire: "Ivory Coast",
   caboverde: "Cape Verde",
+  capeverdeislands: "Cape Verde", // API-Football's name for Cape Verde
   iranislamicrepublic: "Iran",
 };
 

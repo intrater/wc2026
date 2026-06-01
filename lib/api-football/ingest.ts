@@ -30,6 +30,7 @@ export async function runIngest(admin: SupabaseClient): Promise<IngestSummary> {
   const unmatched: string[] = [];
   let matched = 0;
 
+  const matchedIds = new Set<number>();
   for (const row of standings) {
     const seed = resolveSeedName(row.team.name, seedNames);
     if (!seed) {
@@ -38,9 +39,17 @@ export async function runIngest(admin: SupabaseClient): Promise<IngestSummary> {
     }
     const ourId = idBySeedName.get(seed)!;
     ourIdByApiId.set(row.team.id, ourId);
-    matched++;
-    await admin.from("teams").update({ api_id: row.team.id, group_label: row.group?.replace(/^Group\s+/i, "").trim() || null }).eq("id", ourId);
+    matchedIds.add(ourId);
+    // Teams appear in multiple standings blocks (their group + the "Ranking of
+    // third-placed teams" block). Only derive group_label from real group blocks,
+    // or the ranking block clobbers it for whichever teams are currently 3rd.
+    const update: Record<string, unknown> = { api_id: row.team.id };
+    if (/^Group\s+/i.test(row.group ?? "")) {
+      update.group_label = row.group!.replace(/^Group\s+/i, "").trim() || null;
+    }
+    await admin.from("teams").update(update).eq("id", ourId);
   }
+  matched = matchedIds.size;
   // also map any teams already carrying api_id (knockouts: teams may not be in standings rows)
   for (const t of ourTeams) {
     if (t.api_id) ourIdByApiId.set(t.api_id, t.id);
