@@ -14,6 +14,29 @@ depth: deep
 
 ---
 
+## 0. Build & Operational Status (updated 2026-05-31, end of day)
+
+**All 11 implementation units are code-complete, committed, and deployed.** 28 tests passing.
+
+**Live resources:**
+- **GitHub:** https://github.com/intrater/wc2026 (`main`, all work pushed)
+- **App (public):** https://wc2026-pool-psi.vercel.app  (Vercel project `wc2026-pool`, deploy protection OFF)
+- **Supabase project:** `wc2026-pool` (ref `qqdbhuyuoeetnulaxolv`) — migrations applied, 48 teams/12 tiers seeded, RLS verified
+- **Secrets** live only in gitignored `.env.local` + Vercel encrypted env (Supabase keys, Gmail app password, etc.)
+
+**Done & verified:**
+- ✅ Scaffold, schema/RLS (live), scoring engine (18 tests), tiers seeded, leaderboard, pick flow, matches/stake/breakdown views, admin console
+- ✅ Auth + email: Gmail SMTP wired for magic links + receipts; test sign-in email delivered; email templates customized
+- ✅ All routes deploy and serve; `/pick` + `/admin` correctly gated
+
+**Remaining to go fully live (pick up here):**
+1. **API-Football key** — subscribe to Pro, set `API_FOOTBALL_KEY` in `.env.local` + Vercel, run a live sync (admin → "Sync results now" or `/api/poll`), then **verify team-name matching** and add any missing aliases in `lib/api-football/names.ts`. *(This is the one piece not yet tested end-to-end.)*
+2. **Confirm sign-in round-trip** — tap the magic link, confirm it lands on `/pick` signed in.
+3. **Admin one-time setup** (`/admin`): set the **kickoff lock time**; review the tier board and **freeze tiers** (⚠️ irreversible).
+4. **Optional:** connect GitHub→Vercel for auto-deploy on push; add a custom domain.
+
+---
+
 ## 1. Summary
 
 A mobile-first web app that runs John's annual World Cup pool end-to-end, replacing the 2022 spreadsheet + Google Form. Players draft a 12-team roster (one team from each of 12 odds-based tiers), picks lock at kickoff and become public, results auto-ingest from API-Football, and an idempotent Postgres function recomputes everyone's points after each match. A public leaderboard with plain-English per-team breakdowns is the home base.
