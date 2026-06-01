@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Playful, loud, World-Cup-festive theme (UX2). */
+@theme {
+  --color-pitch: #0b8a3e;
+  --color-pitch-dark: #066a2e;
+  --color-gold: #ffc83d;
+  --color-flame: #ff5a36;
+  --color-night: #10101a;
+  --color-cloud: #f6f7fb;
+  --font-display: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(255, 200, 61, 0.18), transparent),
+    var(--color-cloud);
+  color: var(--color-night);
+  font-family: var(--font-display);
+}
+
+/* Big, celebratory headings by default. */
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
