@@ -1,7 +1,7 @@
 ---
 title: "feat: World Cup 2026 fantasy pool app"
 type: feat
-status: active
+status: completed
 created: 2026-05-31
 origin: docs/brainstorms/2026-05-31-world-cup-pool-requirements.md
 depth: deep
