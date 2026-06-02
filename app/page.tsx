@@ -39,11 +39,6 @@ export default async function HomePage() {
           className="block rounded-2xl bg-[var(--color-gold)] px-6 py-4 text-center text-lg font-extrabold text-[var(--color-night)] shadow-sm"
         >
           {hasSubmitted ? "✏️ Edit your picks" : "⚽ Make your picks"}
-          {hasSubmitted && lockAt && (
-            <span className="mt-0.5 block text-sm font-semibold text-[var(--color-night)]/70">
-              <LockCountdown lockAt={lockAt} />
-            </span>
-          )}
         </Link>
       )}
 
