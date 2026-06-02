@@ -64,7 +64,7 @@ export default async function PickPage() {
         <h1 className="text-3xl text-[var(--color-pitch-dark)]">Make your picks</h1>
         <p className="text-neutral-600">
           Pick <strong>one team from each of the 12 tiers</strong>.{" "}
-          <Link href="/how-it-works" className="underline">How it works</Link>
+          <Link href="/how-it-works" className="underline">Scoring details</Link>
         </p>
         {lockAt && (
           <p className="mt-1 text-sm font-semibold text-[var(--color-flame)]">

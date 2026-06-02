@@ -30,7 +30,7 @@ export async function NavBar() {
             <Link href="/pick" className="text-neutral-600 hover:text-neutral-900">My Picks</Link>
           </>
         )}
-        <Link href="/how-it-works" className="ml-auto text-neutral-600 hover:text-neutral-900">How it works</Link>
+        <Link href="/how-it-works" className="ml-auto text-neutral-600 hover:text-neutral-900">Scoring details</Link>
       </div>
     </nav>
   );

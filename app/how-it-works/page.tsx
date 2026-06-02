@@ -1,45 +1,93 @@
-import Link from "next/link";
+import {
+  GROUP_POINTS,
+  KNOCKOUT_POINTS,
+  GOAL_BONUS_PER_GOAL,
+  GOAL_BONUS_MIN_TIER,
+  UPSET_WIN_PER_TIER,
+  UPSET_DRAW_PER_TIER,
+} from "@/lib/scoring/constants";
 
-export const metadata = { title: "How it works · World Cup 2026 Pool" };
+export const metadata = { title: "Scoring · World Cup 2026 Pool" };
 
-export default function HowItWorksPage() {
+function Pts({ v }: { v: number }) {
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-center text-3xl text-[var(--color-pitch-dark)]">How it works</h1>
+    <span className="shrink-0 rounded-full bg-[var(--color-pitch)]/10 px-2.5 py-1 text-sm font-extrabold text-[var(--color-pitch-dark)]">
+      +{v}
+    </span>
+  );
+}
 
-      <section className="space-y-2 rounded-2xl bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-bold">🗂️ Draft 12 teams</h2>
-        <p className="text-neutral-700">
-          All 48 teams are split into <strong>12 tiers</strong> by their odds — Tier 1 is the
-          favorites, Tier 12 is the longshots. You pick <strong>one team from each tier</strong>,
-          so everyone ends up with a mix of favorites and underdogs.
+function Row({ label, sub, v }: { label: string; sub?: string; v: number }) {
+  return (
+    <li className="flex items-center justify-between gap-3 border-b border-neutral-100 py-2 last:border-0">
+      <span>
+        <span className="font-semibold">{label}</span>
+        {sub && <span className="block text-xs text-neutral-500">{sub}</span>}
+      </span>
+      <Pts v={v} />
+    </li>
+  );
+}
+
+function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-bold">{title}</h2>
+      {hint && <p className="mt-0.5 text-sm text-neutral-500">{hint}</p>}
+      <ul className="mt-2">{children}</ul>
+    </section>
+  );
+}
+
+function Note({ children }: { children: React.ReactNode }) {
+  return <p className="mt-3 rounded-lg bg-neutral-50 p-2 text-xs text-neutral-600">{children}</p>;
+}
+
+export default function ScoringPage() {
+  return (
+    <div className="mx-auto max-w-xl space-y-5">
+      <header className="text-center">
+        <h1 className="text-3xl text-[var(--color-pitch-dark)]">Scoring details</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Every way to put points on the board. Scoring is <strong>per team</strong> — each of your
+          12 teams earns on its own.
         </p>
-      </section>
+      </header>
 
-      <section className="space-y-2 rounded-2xl bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-bold">⚽ Earn points all tournament</h2>
-        <ul className="list-disc space-y-1 pl-5 text-neutral-700">
-          <li><strong>Group stage:</strong> 1 pt a draw, 2 pts a win, +3 for winning your group, +1 for advancing.</li>
-          <li><strong>Knockouts:</strong> wins are worth more each round — 2 (Round of 32) up to 10 (final).</li>
-          <li><strong>Goal bonus:</strong> your <strong>Tier 7–12</strong> teams earn +1 for every goal they score — so root for the underdogs.</li>
-          <li><strong>Upset bonus:</strong> when one of your teams beats a higher-tier team, you get bonus points for the size of the upset.</li>
-        </ul>
-      </section>
+      <Card title="🟢 Group stage">
+        <Row label="Win a match" v={GROUP_POINTS.win} />
+        <Row label="Draw a match" v={GROUP_POINTS.draw} />
+        <Row label="Win your group" sub="finish 1st — instead of the advance bonus, not on top of it" v={GROUP_POINTS.winGroupBonus} />
+        <Row label="Advance to the Round of 32" sub="as runner-up or one of the 8 best 3rd-place teams" v={GROUP_POINTS.advanceBonus} />
+      </Card>
 
-      <section className="space-y-2 rounded-2xl bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-bold">🏆 Win the pool</h2>
-        <p className="text-neutral-700">
-          Most points overall takes the top prize, with prizes for runner-up and the best
-          group-stage run. Picks lock at kickoff and everyone&apos;s teams go public. $100 entry,
-          Venmo @john-intrater.
-        </p>
-      </section>
+      <Card title="🏆 Knockout rounds" hint="Points go to the team that advances — penalty-shootout wins count.">
+        <Row label="Win the Round of 32" v={KNOCKOUT_POINTS.r32} />
+        <Row label="Win the Round of 16" v={KNOCKOUT_POINTS.r16} />
+        <Row label="Win the Quarterfinal" v={KNOCKOUT_POINTS.qf} />
+        <Row label="Win the Semifinal" v={KNOCKOUT_POINTS.sf} />
+        <Row label="Win the Final 🥇" v={KNOCKOUT_POINTS.final} />
+        <Note>The third-place playoff has no round points (goals &amp; upsets there still count).</Note>
+      </Card>
 
-      <div className="text-center">
-        <Link href="/pick" className="inline-block rounded-lg bg-[var(--color-pitch)] px-6 py-3 font-bold text-white">
-          Make my picks
-        </Link>
-      </div>
+      <Card title="⚽ Goal bonus" hint={`Only your Tier ${GOAL_BONUS_MIN_TIER}–12 teams.`}>
+        <Row
+          label="Every goal your team scores"
+          sub="open play + penalties, in regulation or extra time — shootout kicks don't count"
+          v={GOAL_BONUS_PER_GOAL}
+        />
+      </Card>
+
+      <Card title="🔥 Upset bonus" hint="Stacks on top of everything above.">
+        <Row label="Beat a higher-tier team" sub="per tier of the gap" v={UPSET_WIN_PER_TIER} />
+        <Row label="Draw a higher-tier team" sub="per tier of the gap" v={UPSET_DRAW_PER_TIER} />
+        <Note>
+          Example: your <strong>Tier 10</strong> team beats a <strong>Tier 3</strong> in the Round of 16 →
+          +{KNOCKOUT_POINTS.r16} for the round and +{7 * UPSET_WIN_PER_TIER} for the upset ={" "}
+          <strong>+{KNOCKOUT_POINTS.r16 + 7 * UPSET_WIN_PER_TIER}</strong>.
+        </Note>
+      </Card>
+
     </div>
   );
 }

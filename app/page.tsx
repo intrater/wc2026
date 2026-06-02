@@ -12,15 +12,10 @@ export default async function HomePage() {
   const phase = await getPhase();
   const user = await getUser();
 
-  const [{ data: entries }, mine] = await Promise.all([
-    supabase.from("entries").select("id, display_name, paid, submitted_at").order("display_name"),
-    user
-      ? supabase.from("entries").select("submitted_at").eq("user_id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const mine = user
+    ? await supabase.from("entries").select("submitted_at").eq("user_id", user.id).maybeSingle()
+    : { data: null };
 
-  const all = entries ?? [];
-  const submitted = all.filter((e) => e.submitted_at);
   const hasSubmitted = !!mine?.data?.submitted_at;
   const lockAt = phase.lockAt ? phase.lockAt.toISOString() : null;
 
@@ -52,11 +47,7 @@ export default async function HomePage() {
         </Link>
       )}
 
-      {phase.phase === "pre_lock" ? (
-        <PreLock entries={submitted} />
-      ) : (
-        <Leaderboard supabase={supabase} />
-      )}
+      {phase.phase !== "pre_lock" && <Leaderboard supabase={supabase} />}
 
       <SharePool />
     </div>
@@ -66,40 +57,16 @@ export default async function HomePage() {
 function Rules() {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
-      <h2 className="mb-2 font-bold">How it works</h2>
+      <h2 className="mb-2 font-bold">TL;DR</h2>
       <ul className="space-y-1.5 text-sm text-neutral-700">
         <li>🎯 Draft <strong>one team from each of 12 tiers</strong> — favorites up top, longshots down low.</li>
         <li>📈 Score points when your teams <strong>win, draw, and advance</strong> — escalating through the knockouts.</li>
-        <li>⚽ Your <strong>tier 7–12</strong> teams also score <strong>+1 per goal</strong>.</li>
+        <li>⚽ <strong>Goal bonus</strong> for tier 7–12 teams.</li>
         <li>🔥 Beating a higher-tier team is an <strong>upset bonus</strong> — chaos pays.</li>
       </ul>
-      <Link href="/how-it-works" className="mt-2 inline-block text-sm text-[var(--color-pitch)] underline">
-        Full scoring details →
-      </Link>
-    </div>
-  );
-}
-
-function PreLock({ entries }: { entries: { id: string; display_name: string; paid: boolean }[] }) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-2xl bg-white p-5 text-center shadow-sm">
-        <div className="text-4xl font-extrabold text-[var(--color-pitch)]">{entries.length}</div>
-        <p className="text-neutral-600">entered so far — picks reveal at kickoff 🔒</p>
-      </div>
-      {entries.length > 0 && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-bold">Who&apos;s in</h2>
-          <ul className="grid grid-cols-2 gap-2 text-sm">
-            {entries.map((e) => (
-              <li key={e.id} className="flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2">
-                <span className="flex-1">{e.display_name}</span>
-                {!e.paid && <span className="text-xs text-[var(--color-flame)]">unpaid</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <p className="mt-3 border-t border-neutral-100 pt-3 text-sm text-neutral-700">
+        💵 <strong>$100 to enter</strong> — pay via Venmo <strong>@john-intrater</strong>.
+      </p>
     </div>
   );
 }
