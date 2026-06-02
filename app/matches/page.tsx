@@ -50,32 +50,58 @@ export default async function MatchesPage() {
     byStage.get(key)!.push(m);
   }
 
+  // Matches involving one of the viewer's teams (already sorted by kickoff).
+  const myMatches = rows.filter(
+    (m) =>
+      (m.home_team_id != null && myTeamIds.has(m.home_team_id)) ||
+      (m.away_team_id != null && myTeamIds.has(m.away_team_id)),
+  );
+
+  const renderRow = (m: (typeof rows)[number]) => (
+    <MatchRow
+      key={m.fixture_id}
+      home={m.home_team_id ? teamMap.get(m.home_team_id) : undefined}
+      away={m.away_team_id ? teamMap.get(m.away_team_id) : undefined}
+      homeGoals={m.home_goals}
+      awayGoals={m.away_goals}
+      played={TERMINAL.has(m.status)}
+      group={m.group_label}
+      myTeamIds={myTeamIds}
+      signedIn={!!user}
+    />
+  );
+
   return (
     <div className="space-y-6">
-      <h1 className="text-center text-2xl font-bold text-[var(--color-pitch-dark)]">Matches</h1>
+      <header className="text-center">
+        <h1 className="text-2xl font-bold text-[var(--color-pitch-dark)]">Matches</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Every match in the tournament. Scores update automatically after each game ends.
+        </p>
+      </header>
       {!user && (
         <p className="text-center text-sm text-neutral-500">
           <Link href="/login" className="underline">Sign in</Link> to see which of your teams are playing.
         </p>
       )}
+
+      {myMatches.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-bold text-[var(--color-pitch-dark)]">⭐ Your matches</h2>
+          <div className="space-y-2">{myMatches.map(renderRow)}</div>
+        </section>
+      )}
+
+      {myMatches.length > 0 && (
+        <h2 className="border-t border-neutral-200 pt-4 text-center text-sm font-semibold text-neutral-400">
+          All matches
+        </h2>
+      )}
+
       {STAGE_ORDER.filter((s) => byStage.has(s)).map((stage) => (
         <section key={stage}>
           <h2 className="mb-2 font-bold text-neutral-700">{STAGE_LABEL[stage]}</h2>
-          <div className="space-y-2">
-            {byStage.get(stage)!.map((m) => (
-              <MatchRow
-                key={m.fixture_id}
-                home={m.home_team_id ? teamMap.get(m.home_team_id) : undefined}
-                away={m.away_team_id ? teamMap.get(m.away_team_id) : undefined}
-                homeGoals={m.home_goals}
-                awayGoals={m.away_goals}
-                played={TERMINAL.has(m.status)}
-                group={m.group_label}
-                myTeamIds={myTeamIds}
-                signedIn={!!user}
-              />
-            ))}
-          </div>
+          <div className="space-y-2">{byStage.get(stage)!.map(renderRow)}</div>
         </section>
       ))}
     </div>

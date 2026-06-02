@@ -174,6 +174,14 @@ The entire UX is designed around three real moments. The app effectively **chang
 
 - **Do NOT use API-Football's free tier in production** (100 req/day — a live match day exceeds it). Pro tier uses ~10% of quota on peak days.
 
+#### 8.1.1 Second-pass re-evaluation of SportMonks (2026-06-01)
+
+Re-confirmed API-Football vs. SportMonks with **current** data before subscribing. **Decision unchanged: ship on API-Football, SportMonks stays the fallback.**
+
+- **SportMonks pricing (current):** main REST plans are league-selection based — **Starter €29/mo (€24 yearly), 5 leagues** (WC2026 = League `732` / Season `26618`); Growth €99, Pro €249. Separate WC2026 *bundles* (predictions/xG/widgets we don't need) run €69–€169/mo. So realistic raw-API cost ≈ **€29/mo (~$31) vs API-Football's $19** — SportMonks is *more* expensive, not less.
+- **Integration cost of a swap (the real cost, not price):** (1) SportMonks uses **numeric stage IDs** (R32 `77479086`, R16 `77479087`, QF `77479088`, SF `77479089`, Final `77479090`) vs API-Football's string `league.round` — `lib/api-football/rounds.ts` would need a rewrite. (2) **Penalty-shootout / extra-time breakdown is not clearly documented as a distinct field** on SportMonks' `scores`-by-period array — that's exactly the field `deriveResult()` ([lib/api-football/client.ts:72](../../lib/api-football/client.ts)) depends on to pick the advancing team and set `decided_by`. Swapping means rewriting `client.ts` + `ingest.ts` + `rounds.ts` and re-deriving the most correctness-critical logic against a less-certain schema, then re-running scoring tests.
+- **Verdict:** coverage is equal (both: 104 matches, 48 teams, <15s updates, standings, brackets); API-Football is cheaper, already built + tested, and verified live with the exact fields we need. No upside justifies the swap. SportMonks remains the documented fallback if API-Football fails in practice.
+
 ---
 
 ## 9. Payouts

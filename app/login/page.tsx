@@ -39,7 +39,7 @@ export default function LoginPage() {
           <input
             name="display_name"
             required
-            placeholder="Justin Dross"
+            placeholder="John Intrater"
             className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-lg"
           />
         </label>
@@ -49,7 +49,7 @@ export default function LoginPage() {
             name="email"
             type="email"
             required
-            placeholder="you@example.com"
+            placeholder="john.intrater@gmail.com"
             className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-lg"
           />
         </label>

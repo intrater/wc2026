@@ -1,80 +1,91 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth/server";
 import { getPhase } from "@/lib/state/phase";
-import { computePayouts, formatUsd, type PayoutSplit } from "@/lib/payouts/calc";
+import { LockCountdown } from "@/components/LockCountdown";
+import { SharePool } from "@/components/SharePool";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_SPLIT: PayoutSplit = { champion: 0.6, runner_up: 0.25, group_leader: 0.15 };
 
 export default async function HomePage() {
   const supabase = await createClient();
   const phase = await getPhase();
+  const user = await getUser();
 
-  const [{ data: settings }, { data: entries }] = await Promise.all([
-    supabase.from("settings").select("payout_split, entry_fee_cents").single(),
+  const [{ data: entries }, mine] = await Promise.all([
     supabase.from("entries").select("id, display_name, paid, submitted_at").order("display_name"),
+    user
+      ? supabase.from("entries").select("submitted_at").eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
-  const split = (settings?.payout_split as PayoutSplit) ?? DEFAULT_SPLIT;
-  const fee = settings?.entry_fee_cents ?? 10000;
   const all = entries ?? [];
   const submitted = all.filter((e) => e.submitted_at);
-  const paidCount = all.filter((e) => e.paid).length;
-  const payouts = computePayouts(paidCount, fee, split);
+  const hasSubmitted = !!mine?.data?.submitted_at;
+  const lockAt = phase.lockAt ? phase.lockAt.toISOString() : null;
 
   return (
     <div className="space-y-6">
       <header className="text-center">
         <div className="text-5xl">🏆⚽️</div>
         <h1 className="mt-1 text-3xl text-[var(--color-pitch-dark)]">World Cup 2026 Pool</h1>
+        {!phase.isLocked && lockAt && (
+          <p className="mt-1 text-sm font-semibold text-[var(--color-flame)]">
+            <LockCountdown lockAt={lockAt} />
+          </p>
+        )}
       </header>
 
-      <PotBar payouts={payouts} paidCount={paidCount} />
+      <Rules />
+
+      {!phase.isLocked && (
+        <Link
+          href="/pick"
+          className="block rounded-2xl bg-[var(--color-gold)] px-6 py-4 text-center text-lg font-extrabold text-[var(--color-night)] shadow-sm"
+        >
+          {hasSubmitted ? "✏️ Edit your picks" : "⚽ Make your picks"}
+          {hasSubmitted && lockAt && (
+            <span className="mt-0.5 block text-sm font-semibold text-[var(--color-night)]/70">
+              <LockCountdown lockAt={lockAt} />
+            </span>
+          )}
+        </Link>
+      )}
 
       {phase.phase === "pre_lock" ? (
-        <PreLock entries={submitted} totalEntries={all.length} />
+        <PreLock entries={submitted} />
       ) : (
         <Leaderboard supabase={supabase} />
       )}
+
+      <SharePool />
     </div>
   );
 }
 
-function PotBar({ payouts, paidCount }: { payouts: ReturnType<typeof computePayouts>; paidCount: number }) {
+function Rules() {
   return (
-    <div className="rounded-2xl bg-[var(--color-night)] p-4 text-white">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm text-neutral-300">Prize pool ({paidCount} paid)</span>
-        <span className="text-2xl font-extrabold text-[var(--color-gold)]">{formatUsd(payouts.potCents)}</span>
-      </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-        <Prize label="🥇 Champion" value={formatUsd(payouts.championCents)} />
-        <Prize label="🥈 Runner-up" value={formatUsd(payouts.runnerUpCents)} />
-        <Prize label="📅 Group stage" value={formatUsd(payouts.groupLeaderCents)} />
-      </div>
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      <h2 className="mb-2 font-bold">How it works</h2>
+      <ul className="space-y-1.5 text-sm text-neutral-700">
+        <li>🎯 Draft <strong>one team from each of 12 tiers</strong> — favorites up top, longshots down low.</li>
+        <li>📈 Score points when your teams <strong>win, draw, and advance</strong> — escalating through the knockouts.</li>
+        <li>⚽ Your <strong>tier 7–12</strong> teams also score <strong>+1 per goal</strong>.</li>
+        <li>🔥 Beating a higher-tier team is an <strong>upset bonus</strong> — chaos pays.</li>
+      </ul>
+      <Link href="/how-it-works" className="mt-2 inline-block text-sm text-[var(--color-pitch)] underline">
+        Full scoring details →
+      </Link>
     </div>
   );
 }
 
-function Prize({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-white/10 p-2">
-      <div className="text-neutral-300">{label}</div>
-      <div className="font-bold">{value}</div>
-    </div>
-  );
-}
-
-function PreLock({ entries, totalEntries }: { entries: { id: string; display_name: string; paid: boolean }[]; totalEntries: number }) {
+function PreLock({ entries }: { entries: { id: string; display_name: string; paid: boolean }[] }) {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-white p-5 text-center shadow-sm">
         <div className="text-4xl font-extrabold text-[var(--color-pitch)]">{entries.length}</div>
         <p className="text-neutral-600">entered so far — picks reveal at kickoff 🔒</p>
-        <Link href="/pick" className="mt-3 inline-block rounded-lg bg-[var(--color-gold)] px-6 py-3 font-bold text-[var(--color-night)]">
-          Make your picks
-        </Link>
       </div>
       {entries.length > 0 && (
         <div className="rounded-2xl bg-white p-5 shadow-sm">

@@ -191,7 +191,9 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# NOTE: prod is set to 30 in the dashboard. Keep these in sync — pushing a lower
+# value here resets prod and players hit "email rate limit exceeded" on signup.
+email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -228,15 +230,20 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Custom SMTP (Gmail) — REQUIRED in prod. Without this, Supabase falls back to its
+# built-in email, which only delivers to team members (so pool players get nothing)
+# and is capped at a few emails/hour. This is configured in the dashboard; mirror it
+# here so `supabase config push` doesn't disable it.
+# ⚠️ Before pushing, set the password as a Supabase secret (NOT committed):
+#      supabase secrets set SMTP_PASS=<gmail app password>
+[auth.email.smtp]
+enabled = true
+host = "smtp.gmail.com"
+port = 465
+user = "john.intrater@gmail.com"
+pass = "env(SMTP_PASS)"
+admin_email = "john.intrater@gmail.com"
+sender_name = "World Cup 2026 Pool"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

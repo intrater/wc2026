@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
 import { TIER_LABELS, GOAL_BONUS_MIN_TIER } from "@/lib/tiers/labels";
 import { TierPicker, type PickerTier } from "./TierPicker";
+import { LockCountdown } from "@/components/LockCountdown";
 
 export const dynamic = "force-dynamic";
 
@@ -65,8 +66,18 @@ export default async function PickPage() {
           Pick <strong>one team from each of the 12 tiers</strong>.{" "}
           <Link href="/how-it-works" className="underline">How it works</Link>
         </p>
+        {lockAt && (
+          <p className="mt-1 text-sm font-semibold text-[var(--color-flame)]">
+            <LockCountdown lockAt={lockAt.toISOString()} />
+          </p>
+        )}
       </header>
-      <TierPicker tiers={tiers} initialPicks={initialPicks} initialSubmitted={!!entry?.submitted_at} />
+      <TierPicker
+        tiers={tiers}
+        initialPicks={initialPicks}
+        initialSubmitted={!!entry?.submitted_at}
+        lockAt={lockAt ? lockAt.toISOString() : null}
+      />
     </div>
   );
 }
