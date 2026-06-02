@@ -32,9 +32,36 @@ export function SharePool() {
   return (
     <button
       onClick={share}
-      className="w-full rounded-xl border-2 border-dashed border-[var(--color-pitch)]/40 bg-white px-4 py-3 font-bold text-[var(--color-pitch-dark)] transition hover:bg-[var(--color-pitch)]/5"
+      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-pitch)] px-6 py-4 text-lg font-extrabold text-white shadow-sm transition hover:opacity-90"
     >
-      {copied ? "✅ Link copied — send it to your friends!" : "📣 Invite friends to the pool"}
+      {copied ? (
+        "✅ Link copied — send it to your friends!"
+      ) : (
+        <>
+          <ShareIcon />
+          Invite friends to the pool
+        </>
+      )}
     </button>
+  );
+}
+
+/** iOS-style share glyph: an arrow rising out of a tray. */
+function ShareIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M12 3v12" />
+      <path d="m8 7 4-4 4 4" />
+      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
   );
 }

@@ -31,6 +31,9 @@ export async function NavBar() {
           </>
         )}
         <Link href="/how-it-works" className="ml-auto text-neutral-600 hover:text-neutral-900">Scoring details</Link>
+        {process.env.NODE_ENV === "development" && (
+          <Link href="/dev-login" className="rounded bg-amber-200 px-2 py-0.5 text-amber-900">🔧 Dev login</Link>
+        )}
       </div>
     </nav>
   );
