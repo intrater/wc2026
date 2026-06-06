@@ -53,14 +53,30 @@ function Rules() {
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
       <h2 className="mb-2 font-bold">TL;DR</h2>
-      <ul className="space-y-1.5 text-sm text-neutral-700">
-        <li>🎯 Draft <strong>one team from each of 12 tiers</strong> — favorites up top, longshots down low.</li>
-        <li>📈 Score points when your teams <strong>win, draw, and advance</strong> — escalating through the knockouts.</li>
-        <li>⚽ <strong>Goal bonus</strong> for tier 7–12 teams.</li>
-        <li>🔥 Beating a higher-tier team is an <strong>upset bonus</strong> — chaos pays.</li>
+      <ul className="space-y-3 text-sm text-neutral-700">
+        <li>
+          <p className="font-bold text-neutral-900">🎯 Pick teams</p>
+          <p>One per tier (12), favorites to longshots.</p>
+        </li>
+        <li>
+          <p className="font-bold text-neutral-900">📈 Score points</p>
+          <p>Wins, draws, advancing — more in knockouts.</p>
+        </li>
+        <li>
+          <p className="font-bold text-neutral-900">🔥 Bonus</p>
+          <p>Upsets, plus goals for tiers 7–12.</p>
+        </li>
       </ul>
       <p className="mt-3 border-t border-neutral-100 pt-3 text-sm text-neutral-700">
-        💵 <strong>$100 to enter</strong> — pay via Venmo <strong>@john-intrater</strong>.
+        💵 <strong>$100 entry</strong> — via{" "}
+        <a
+          href="https://venmo.com/u/john-intrater"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-[var(--color-pitch)] underline"
+        >
+          Venmo
+        </a>
       </p>
     </div>
   );
