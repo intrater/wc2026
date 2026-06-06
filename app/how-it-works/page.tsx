@@ -56,23 +56,23 @@ export default function ScoringPage() {
         </p>
       </header>
 
-      <Card title="🟢 Group stage">
+      <Card title="Group stage">
         <Row label="Win a match" v={GROUP_POINTS.win} />
         <Row label="Draw a match" v={GROUP_POINTS.draw} />
         <Row label="Win your group" sub="finish 1st — instead of the advance bonus, not on top of it" v={GROUP_POINTS.winGroupBonus} />
         <Row label="Advance to the Round of 32" sub="as runner-up or one of the 8 best 3rd-place teams" v={GROUP_POINTS.advanceBonus} />
       </Card>
 
-      <Card title="🏆 Knockout rounds" hint="Points go to the team that advances — penalty-shootout wins count.">
+      <Card title="Knockout rounds" hint="Points go to the team that advances — penalty-shootout wins count.">
         <Row label="Win the Round of 32" v={KNOCKOUT_POINTS.r32} />
         <Row label="Win the Round of 16" v={KNOCKOUT_POINTS.r16} />
         <Row label="Win the Quarterfinal" v={KNOCKOUT_POINTS.qf} />
         <Row label="Win the Semifinal" v={KNOCKOUT_POINTS.sf} />
-        <Row label="Win the Final 🥇" v={KNOCKOUT_POINTS.final} />
+        <Row label="Win the Final" v={KNOCKOUT_POINTS.final} />
         <Note>The third-place playoff has no round points (goals &amp; upsets there still count).</Note>
       </Card>
 
-      <Card title="⚽ Goal bonus" hint={`Only your Tier ${GOAL_BONUS_MIN_TIER}–12 teams.`}>
+      <Card title="Goal bonus" hint={`Only your Tier ${GOAL_BONUS_MIN_TIER}–12 teams.`}>
         <Row
           label="Every goal your team scores"
           sub="open play + penalties, in regulation or extra time — shootout kicks don't count"
@@ -80,7 +80,7 @@ export default function ScoringPage() {
         />
       </Card>
 
-      <Card title="🔥 Upset bonus" hint="Stacks on top of everything above.">
+      <Card title="Upset bonus" hint="Stacks on top of everything above.">
         <Row label="Beat a higher-tier team" sub="per tier of the gap" v={UPSET_WIN_PER_TIER} />
         <Row label="Draw a higher-tier team" sub="per tier of the gap" v={UPSET_DRAW_PER_TIER} />
         <Note>

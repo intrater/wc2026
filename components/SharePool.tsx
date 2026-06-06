@@ -39,7 +39,7 @@ export function SharePool() {
       ) : (
         <>
           <ShareIcon />
-          Invite friends to the pool
+          Invite friends
         </>
       )}
     </button>

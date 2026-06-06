@@ -5,102 +5,108 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Sleek dark "sportsbook" theme: near-black cool background, neon-green accent,
- * white type. The app is always dark — the palette lives in :root and is mirrored
- * to .dark so shadcn primitives resolve correctly either way.
+ * Vivid "mesh gradient" theme: deep indigo base with slowly drifting blurred
+ * canary-yellow / periwinkle / electric-blue blobs and a film-grain overlay. White
+ * type, glassy translucent cards, Brazil-yellow accent. The app is always dark — the
+ * palette lives in :root and is mirrored to .dark so shadcn primitives
+ * resolve correctly either way.
  */
 :root {
   color-scheme: dark;
 
-  --background: oklch(0.16 0.012 255);
-  --foreground: oklch(0.97 0.005 255);
+  --background: oklch(0.37 0.22 277);
+  --foreground: oklch(0.99 0.003 280);
 
-  --card: oklch(0.205 0.014 255);
-  --card-foreground: oklch(0.97 0.005 255);
+  /* glassy cards over the animated gradient */
+  --card: oklch(1 0 0 / 10%);
+  --card-foreground: oklch(0.99 0.003 280);
 
-  --popover: oklch(0.205 0.014 255);
-  --popover-foreground: oklch(0.97 0.005 255);
+  /* popovers need to be opaque so dropdowns stay readable */
+  --popover: oklch(0.31 0.17 276);
+  --popover-foreground: oklch(0.99 0.003 280);
 
-  /* neon green brand */
-  --primary: oklch(0.86 0.21 148);
-  --primary-foreground: oklch(0.18 0.03 255);
+  /* deep navy — the "Let's Go" button blue */
+  --primary: oklch(0.4 0.26 264);
+  --primary-foreground: oklch(0.99 0.003 280);
 
-  --secondary: oklch(0.27 0.015 255);
-  --secondary-foreground: oklch(0.97 0.005 255);
+  --secondary: oklch(1 0 0 / 13%);
+  --secondary-foreground: oklch(0.99 0.003 280);
 
-  --muted: oklch(0.255 0.012 255);
-  --muted-foreground: oklch(0.7 0.015 255);
+  --muted: oklch(1 0 0 / 8%);
+  --muted-foreground: oklch(0.89 0.04 278);
 
-  --accent: oklch(0.28 0.02 160);
-  --accent-foreground: oklch(0.97 0.005 255);
+  --accent: oklch(1 0 0 / 15%);
+  --accent-foreground: oklch(0.99 0.003 280);
 
-  /* custom brand neon, exposed as text-neon / bg-neon / etc. */
-  --neon: oklch(0.86 0.21 148);
-  --neon-foreground: oklch(0.18 0.03 255);
+  /* custom brand accent (Brazil canary yellow), exposed as text-neon / bg-neon / etc. */
+  --neon: oklch(0.89 0.18 100);
+  --neon-foreground: oklch(0.28 0.13 268);
 
   --destructive: oklch(0.62 0.21 25);
 
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.86 0.21 148);
+  --border: oklch(1 0 0 / 18%);
+  --input: oklch(1 0 0 / 22%);
+  --ring: oklch(0.89 0.18 100);
 
-  --chart-1: oklch(0.86 0.21 148);
-  --chart-2: oklch(0.7 0.15 195);
+  --chart-1: oklch(0.89 0.18 100);
+  --chart-2: oklch(0.74 0.12 278);
   --chart-3: oklch(0.75 0.16 85);
-  --chart-4: oklch(0.65 0.2 25);
+  --chart-4: oklch(0.55 0.25 265);
   --chart-5: oklch(0.6 0.18 300);
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  --sidebar: oklch(0.205 0.014 255);
-  --sidebar-foreground: oklch(0.97 0.005 255);
-  --sidebar-primary: oklch(0.86 0.21 148);
-  --sidebar-primary-foreground: oklch(0.18 0.03 255);
-  --sidebar-accent: oklch(0.27 0.015 255);
-  --sidebar-accent-foreground: oklch(0.97 0.005 255);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.86 0.21 148);
+  --sidebar: oklch(0.31 0.17 276);
+  --sidebar-foreground: oklch(0.99 0.003 280);
+  --sidebar-primary: oklch(0.89 0.18 100);
+  --sidebar-primary-foreground: oklch(0.28 0.13 268);
+  --sidebar-accent: oklch(1 0 0 / 13%);
+  --sidebar-accent-foreground: oklch(0.99 0.003 280);
+  --sidebar-border: oklch(1 0 0 / 18%);
+  --sidebar-ring: oklch(0.89 0.18 100);
 }
 
 .dark {
-  --background: oklch(0.16 0.012 255);
-  --foreground: oklch(0.97 0.005 255);
-  --card: oklch(0.205 0.014 255);
-  --card-foreground: oklch(0.97 0.005 255);
-  --popover: oklch(0.205 0.014 255);
-  --popover-foreground: oklch(0.97 0.005 255);
-  --primary: oklch(0.86 0.21 148);
-  --primary-foreground: oklch(0.18 0.03 255);
-  --secondary: oklch(0.27 0.015 255);
-  --secondary-foreground: oklch(0.97 0.005 255);
-  --muted: oklch(0.255 0.012 255);
-  --muted-foreground: oklch(0.7 0.015 255);
-  --accent: oklch(0.28 0.02 160);
-  --accent-foreground: oklch(0.97 0.005 255);
-  --neon: oklch(0.86 0.21 148);
-  --neon-foreground: oklch(0.18 0.03 255);
+  --background: oklch(0.37 0.22 277);
+  --foreground: oklch(0.99 0.003 280);
+  --card: oklch(1 0 0 / 10%);
+  --card-foreground: oklch(0.99 0.003 280);
+  --popover: oklch(0.31 0.17 276);
+  --popover-foreground: oklch(0.99 0.003 280);
+  --primary: oklch(0.4 0.26 264);
+  --primary-foreground: oklch(0.99 0.003 280);
+  --secondary: oklch(1 0 0 / 13%);
+  --secondary-foreground: oklch(0.99 0.003 280);
+  --muted: oklch(1 0 0 / 8%);
+  --muted-foreground: oklch(0.89 0.04 278);
+  --accent: oklch(1 0 0 / 15%);
+  --accent-foreground: oklch(0.99 0.003 280);
+  --neon: oklch(0.89 0.18 100);
+  --neon-foreground: oklch(0.28 0.13 268);
   --destructive: oklch(0.62 0.21 25);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.86 0.21 148);
-  --chart-1: oklch(0.86 0.21 148);
-  --chart-2: oklch(0.7 0.15 195);
+  --border: oklch(1 0 0 / 18%);
+  --input: oklch(1 0 0 / 22%);
+  --ring: oklch(0.89 0.18 100);
+  --chart-1: oklch(0.89 0.18 100);
+  --chart-2: oklch(0.74 0.12 278);
   --chart-3: oklch(0.75 0.16 85);
-  --chart-4: oklch(0.65 0.2 25);
+  --chart-4: oklch(0.55 0.25 265);
   --chart-5: oklch(0.6 0.18 300);
-  --sidebar: oklch(0.205 0.014 255);
-  --sidebar-foreground: oklch(0.97 0.005 255);
-  --sidebar-primary: oklch(0.86 0.21 148);
-  --sidebar-primary-foreground: oklch(0.18 0.03 255);
-  --sidebar-accent: oklch(0.27 0.015 255);
-  --sidebar-accent-foreground: oklch(0.97 0.005 255);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.86 0.21 148);
+  --sidebar: oklch(0.31 0.17 276);
+  --sidebar-foreground: oklch(0.99 0.003 280);
+  --sidebar-primary: oklch(0.89 0.18 100);
+  --sidebar-primary-foreground: oklch(0.28 0.13 268);
+  --sidebar-accent: oklch(1 0 0 / 13%);
+  --sidebar-accent-foreground: oklch(0.99 0.003 280);
+  --sidebar-border: oklch(1 0 0 / 18%);
+  --sidebar-ring: oklch(0.89 0.18 100);
 }
 
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
+  /* display face for the big "THE POOL" headline, exposed as font-display */
+  --font-display: var(--font-tourney);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -136,12 +142,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  /* Flat 8px radius across every size step — crisp, not bubbly. */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
 }
 
 @layer base {
@@ -150,11 +157,114 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(900px 480px at 50% -12%, oklch(0.86 0.21 148 / 0.1), transparent 70%),
-      radial-gradient(700px 500px at 100% 0%, oklch(0.7 0.15 250 / 0.06), transparent 60%);
-    background-attachment: fixed;
   }
+
+  /*
+   * Animated mesh gradient. Oversized fixed layer (inset -25%) so the slow
+   * drift/rotate never exposes an edge; blur melts the blobs together.
+   * Sits behind the grain layer and all content via negative z-index.
+   */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -25%;
+    z-index: -2;
+    pointer-events: none;
+    background:
+      /* periwinkle haze, lower left */
+      radial-gradient(40% 34% at 14% 76%, oklch(0.75 0.12 278 / 0.9), transparent 72%),
+      /* violet wash through the middle */
+      radial-gradient(55% 45% at 55% 22%, oklch(0.48 0.21 292 / 0.65), transparent 72%),
+      /* electric blue rising from the bottom */
+      radial-gradient(65% 50% at 50% 102%, oklch(0.46 0.27 265 / 0.95), transparent 75%),
+      /* deep indigo base */
+      linear-gradient(170deg, oklch(0.36 0.22 282), oklch(0.41 0.25 270));
+    filter: blur(40px) saturate(115%);
+    animation: mesh-drift 40s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  /*
+   * The canary-yellow bloom gets its own layer so it can float around the
+   * screen independently of the slow mesh drift. z-index -1 puts it above the
+   * mesh (-2) but below the grain (body::after, also -1, later in tree order).
+   */
+  html::before {
+    content: "";
+    position: fixed;
+    top: -35%;
+    right: -45%;
+    z-index: -1;
+    width: 140vmax;
+    height: 125vmax;
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(
+      closest-side,
+      oklch(0.87 0.18 98 / 0.65),
+      oklch(0.87 0.18 98 / 0.4) 40%,
+      oklch(0.87 0.18 98 / 0.18) 62%,
+      oklch(0.87 0.18 98 / 0.06) 80%,
+      transparent 95%
+    );
+    filter: blur(130px);
+    animation: blob-float 48s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  @keyframes blob-float {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    25% {
+      transform: translate3d(-42vw, 24vh, 0) scale(1.2);
+    }
+    50% {
+      transform: translate3d(-12vw, 55vh, 0) scale(0.85);
+    }
+    75% {
+      transform: translate3d(-55vw, 28vh, 0) scale(1.15);
+    }
+    100% {
+      transform: translate3d(-20vw, -10vh, 0) scale(1.08);
+    }
+  }
+
+  /* Film-grain texture over the gradient (SVG turbulence noise). */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: soft-light;
+    opacity: 0.5;
+  }
+
+  @keyframes mesh-drift {
+    0% {
+      transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    }
+    33% {
+      transform: translate3d(3%, -2%, 0) rotate(2deg) scale(1.06);
+    }
+    66% {
+      transform: translate3d(-2.5%, 2.5%, 0) rotate(-1.5deg) scale(1.03);
+    }
+    100% {
+      transform: translate3d(2%, 1.5%, 0) rotate(1deg) scale(1.08);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::before,
+    html::before {
+      animation: none;
+    }
+  }
+
   html {
     @apply font-sans;
   }
@@ -166,12 +276,12 @@
   }
 }
 
-/* Neon glow helpers for the sportsbook CTAs / accents. */
+/* Canary-yellow glow helpers for CTAs / accents. */
 @utility glow-neon {
   box-shadow:
-    0 0 0 1px oklch(0.86 0.21 148 / 0.35),
-    0 8px 30px oklch(0.86 0.21 148 / 0.25);
+    0 0 0 1px oklch(0.89 0.18 100 / 0.35),
+    0 8px 30px oklch(0.89 0.18 100 / 0.3);
 }
 @utility text-glow {
-  text-shadow: 0 0 18px oklch(0.86 0.21 148 / 0.45);
+  text-shadow: 0 0 18px oklch(0.89 0.18 100 / 0.5);
 }

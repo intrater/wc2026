@@ -22,12 +22,12 @@ export default async function HomePage() {
   return (
     <div className="space-y-6">
       <header className="pt-4 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.35em] text-muted-foreground">
-          World Cup 2026
-        </p>
-        <h1 className="mt-2 text-5xl font-extrabold leading-[0.95] sm:text-6xl">
+        <h1 className="font-display text-6xl font-extrabold leading-[0.95] sm:text-7xl">
           THE <span className="text-neon text-glow">POOL</span>
         </h1>
+        <p className="mt-2 text-xs font-bold uppercase tracking-[0.35em] text-muted-foreground">
+          World Cup 2026
+        </p>
         {!phase.isLocked && lockAt && (
           <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-neon">
             <LockCountdown lockAt={lockAt} />
@@ -40,10 +40,22 @@ export default async function HomePage() {
       {!phase.isLocked && (
         <Link
           href="/pick"
-          className="glow-neon group flex items-center justify-center gap-2 rounded-2xl bg-neon px-6 py-4 text-center text-lg font-extrabold uppercase tracking-wide text-neon-foreground transition-transform active:translate-y-px"
+          className="glow-neon group flex items-center justify-center gap-2 rounded-2xl bg-neon px-6 py-4 text-center text-lg font-extrabold text-neon-foreground transition-transform active:translate-y-px"
         >
           {hasSubmitted ? "Edit your picks" : "Make your picks"}
-          <span className="transition-transform group-hover:translate-x-1">▸</span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5 transition-transform group-hover:translate-x-1"
+            aria-hidden="true"
+          >
+            <path d="M5 12h14" />
+            <path d="m13 6 6 6-6 6" />
+          </svg>
         </Link>
       )}
 
@@ -86,9 +98,9 @@ function Rules() {
           href="https://venmo.com/u/john-intrater"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#3d95ce] px-3 py-1.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-bold text-foreground transition-colors hover:border-neon/50 hover:text-neon"
         >
-          Pay via Venmo ▸
+          Pay via Venmo
         </a>
       </div>
     </div>

@@ -20,10 +20,38 @@ export function LockCountdown({ lockAt, className = "" }: { lockAt: string | nul
   }, []);
 
   if (!target) return null;
-  if (now == null) return <span className={className}>⏳ Picks lock soon…</span>;
-  if (now >= target) return <span className={className}>🔒 Picks are locked</span>;
+  if (now == null) return <Label className={className}>Picks lock soon…</Label>;
+  if (now >= target) return <Label className={className}>Picks are locked</Label>;
 
-  return <span className={className}>⏳ Picks lock in {remaining(target - now)}</span>;
+  return <Label className={className}>Picks lock in {remaining(target - now)}</Label>;
+}
+
+function Label({ className, children }: { className: string; children: React.ReactNode }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+      <LockIcon />
+      <span>{children}</span>
+    </span>
+  );
+}
+
+/** Padlock glyph, sized to ride alongside the countdown text. */
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4 shrink-0"
+      aria-hidden="true"
+    >
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
 }
 
 function remaining(ms: number): string {
