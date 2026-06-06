@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getUserAndProfile } from "@/lib/auth/server";
-import { sendPickReceipt } from "@/lib/email/receipt";
+import { sendPickReceipt, sendEntryNotification } from "@/lib/email/receipt";
 import { isComplete, missingTiers, type PickMap } from "@/lib/entries/validate";
 
 async function locked(): Promise<boolean> {
@@ -89,11 +89,24 @@ export async function submitEntry(): Promise<{ ok?: boolean; error?: string }> {
     return { error: `Pick a team in every tier — still missing tier ${missingTiers(map).join(", ")}.` };
   }
 
+  // Remember whether this is the first submission, to notify the admin only once.
+  const { data: entryRow } = await supabase
+    .from("entries")
+    .select("display_name, submitted_at")
+    .eq("id", entryId)
+    .single();
+  const isFirstSubmit = !entryRow?.submitted_at;
+
   const { error: subErr } = await supabase
     .from("entries")
     .update({ submitted_at: new Date().toISOString() })
     .eq("id", entryId);
   if (subErr) return { error: subErr.message };
+
+  // Fire-and-forget admin notification on first submission only.
+  if (isFirstSubmit) {
+    await sendEntryNotification(entryRow?.display_name ?? ctx.profile?.display_name ?? "Someone");
+  }
 
   // Fire-and-forget receipt (UX5).
   const email = ctx.profile?.email ?? ctx.user.email;
