@@ -17,9 +17,9 @@ export default async function RostersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-center text-2xl font-bold text-[var(--color-pitch-dark)]">Rosters</h1>
+      <h1 className="pt-2 text-center text-3xl font-extrabold">Rosters</h1>
       {phase.phase === "pre_lock" && (
-        <p className="text-center text-sm text-neutral-500">
+        <p className="text-center text-sm text-muted-foreground">
           Picks are hidden until kickoff — you can see who&apos;s entered, but not their teams yet. 🔒
         </p>
       )}
@@ -28,15 +28,15 @@ export default async function RostersPage() {
           const total = (e.scores as unknown as { total: number } | null)?.total;
           return (
             <li key={e.id}>
-              <Link href={`/entry/${e.id}`} className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm hover:bg-neutral-50">
+              <Link href={`/entry/${e.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm transition-colors hover:border-neon/40 hover:bg-accent/40">
                 <span className="flex-1 font-semibold">
                   {e.display_name}
-                  {!e.paid && <span className="ml-2 text-xs text-[var(--color-flame)]">unpaid</span>}
+                  {!e.paid && <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs font-medium text-destructive">unpaid</span>}
                 </span>
                 {phase.phase !== "pre_lock" && total != null && (
-                  <span className="font-extrabold text-[var(--color-pitch-dark)]">{total}</span>
+                  <span className="font-extrabold tabular-nums text-neon">{total}</span>
                 )}
-                <span className="text-neutral-300">›</span>
+                <span className="text-muted-foreground">›</span>
               </Link>
             </li>
           );

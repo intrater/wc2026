@@ -76,21 +76,21 @@ export function TierPicker({
         {tiers.map((tier) => {
           const team = teamById(tier, picks[tier.tierNo]);
           return (
-            <section key={tier.tierNo} className="rounded-2xl bg-white p-4 shadow-sm">
+            <section key={tier.tierNo} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-neutral-500">
-                  Tier {tier.tierNo} · {tier.label}
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <span className="font-mono text-neon">{String(tier.tierNo).padStart(2, "0")}</span> · {tier.label}
                 </h2>
                 {tier.goalBonus && (
-                  <span className="rounded-full bg-[var(--color-flame)]/15 px-2 py-0.5 text-xs font-semibold text-[var(--color-flame)]">
+                  <span className="rounded-full bg-neon/15 px-2 py-0.5 text-xs font-semibold text-neon">
                     ⚽ goals score points
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 rounded-xl border-2 border-[var(--color-pitch)] bg-[var(--color-pitch)]/10 px-3 py-3">
+              <div className="flex items-center gap-3 rounded-xl border border-neon/60 bg-neon/10 px-3 py-3">
                 <span className="text-2xl">{team?.flag ?? "❓"}</span>
                 <span className="font-semibold">{team?.name ?? "No pick"}</span>
-                <span className="ml-auto text-[var(--color-pitch)]">✓</span>
+                <span className="ml-auto text-neon">✓</span>
               </div>
             </section>
           );
@@ -105,22 +105,23 @@ export function TierPicker({
   return (
     <div className="space-y-5 pb-28">
       {submitted && (
-        <div className="flex items-center justify-between rounded-xl bg-[var(--color-pitch)]/10 p-4 text-[var(--color-pitch-dark)]">
+        <div className="flex items-center justify-between rounded-xl border border-neon/40 bg-neon/10 p-4 text-foreground">
           <span>✏️ Editing your entry — changes save as you pick.</span>
-          <button onClick={() => setEditing(false)} className="text-sm font-semibold underline">
+          <button onClick={() => setEditing(false)} className="text-sm font-semibold text-neon underline">
             Done
           </button>
         </div>
       )}
 
       {tiers.map((tier) => (
-        <section key={tier.tierNo} className="rounded-2xl bg-white p-4 shadow-sm">
+        <section key={tier.tierNo} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold">
-              Tier {tier.tierNo} <span className="font-normal text-neutral-500">· {tier.label}</span>
+              <span className="font-mono text-neon">{String(tier.tierNo).padStart(2, "0")}</span>{" "}
+              <span className="font-normal text-muted-foreground">· {tier.label}</span>
             </h2>
             {tier.goalBonus && (
-              <span className="rounded-full bg-[var(--color-flame)]/15 px-2 py-0.5 text-xs font-semibold text-[var(--color-flame)]">
+              <span className="rounded-full bg-neon/15 px-2 py-0.5 text-xs font-semibold text-neon">
                 ⚽ goals score points
               </span>
             )}
@@ -133,18 +134,18 @@ export function TierPicker({
                   key={team.id}
                   onClick={() => choose(tier.tierNo, team.id)}
                   disabled={isPending && savingTier === tier.tierNo}
-                  className={`flex items-center gap-2 rounded-xl border-2 px-3 py-3 text-left transition ${
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-left transition disabled:opacity-60 ${
                     selected
-                      ? "border-[var(--color-pitch)] bg-[var(--color-pitch)]/10"
-                      : "border-neutral-200 hover:border-neutral-300"
+                      ? "border-neon/60 bg-neon/10 text-foreground"
+                      : "border-border bg-background hover:border-neon/40 hover:bg-accent/40"
                   }`}
                 >
                   <span className="text-2xl">{team.flag}</span>
                   <span className="flex-1">
                     <span className="block font-semibold leading-tight">{team.name}</span>
-                    {team.odds && <span className="text-xs text-neutral-400">{team.odds}</span>}
+                    {team.odds && <span className="text-xs text-muted-foreground">{team.odds}</span>}
                   </span>
-                  {selected && <span className="text-[var(--color-pitch)]">✓</span>}
+                  {selected && <span className="text-neon">✓</span>}
                 </button>
               );
             })}
@@ -153,18 +154,24 @@ export function TierPicker({
       ))}
 
       {/* Sticky submit bar */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-neutral-200 bg-white/95 p-4 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/85 p-4 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <div className="flex-1">
             <div className="text-sm font-semibold">
-              {complete ? "✅ All 12 picked" : `${count} / ${tiers.length} tiers picked`}
+              {complete ? (
+                <span className="text-neon">✅ All 12 picked</span>
+              ) : (
+                <span className="text-muted-foreground">
+                  <span className="font-mono text-foreground">{count}</span> / {tiers.length} tiers picked
+                </span>
+              )}
             </div>
-            {error && <div className="text-xs text-[var(--color-flame)]">{error}</div>}
+            {error && <div className="text-xs text-destructive">{error}</div>}
           </div>
           <button
             onClick={submit}
             disabled={!complete || isPending}
-            className="rounded-lg bg-[var(--color-gold)] px-6 py-3 font-bold text-[var(--color-night)] disabled:opacity-50"
+            className="rounded-xl bg-neon px-6 py-3 font-extrabold uppercase tracking-wide text-neon-foreground transition-transform active:translate-y-px disabled:opacity-40 disabled:saturate-50 enabled:glow-neon"
           >
             {submitted ? "Save changes" : "Submit entry"}
           </button>
@@ -176,18 +183,18 @@ export function TierPicker({
 
 function CompletedCard({ lockAt, onEdit }: { lockAt: string | null; onEdit: () => void }) {
   return (
-    <div className="rounded-2xl bg-[var(--color-pitch)]/10 p-5 text-center text-[var(--color-pitch-dark)]">
+    <div className="rounded-2xl border border-neon/40 bg-neon/10 p-5 text-center">
       <div className="text-3xl">✅</div>
-      <p className="mt-1 font-bold">Your entry is in!</p>
-      <p className="text-sm text-neutral-600">You can edit your picks until they lock. We emailed you a receipt.</p>
+      <p className="mt-1 text-lg font-extrabold text-neon">Your entry is in!</p>
+      <p className="text-sm text-muted-foreground">You can edit your picks until they lock. We emailed you a receipt.</p>
       {lockAt && (
-        <p className="mt-1 text-sm font-semibold text-[var(--color-flame)]">
+        <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-neon">
           <LockCountdown lockAt={lockAt} />
         </p>
       )}
       <button
         onClick={onEdit}
-        className="mt-3 rounded-lg bg-[var(--color-pitch)] px-5 py-2.5 font-bold text-white"
+        className="mt-3 block w-full rounded-xl border border-border bg-card px-5 py-2.5 font-bold text-foreground transition-colors hover:border-neon/50 hover:text-neon"
       >
         ✏️ Edit picks
       </button>

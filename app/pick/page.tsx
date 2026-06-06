@@ -25,11 +25,11 @@ export default async function PickPage() {
 
   if (locked) {
     return (
-      <div className="space-y-4 text-center">
+      <div className="space-y-4 pt-10 text-center">
         <div className="text-5xl">🔒</div>
-        <h1 className="text-3xl text-[var(--color-pitch-dark)]">Picks are locked</h1>
-        <p className="text-neutral-600">The tournament has kicked off — entries are final.</p>
-        <Link href="/" className="inline-block rounded-lg bg-[var(--color-pitch)] px-5 py-3 font-bold text-white">
+        <h1 className="text-3xl font-extrabold">Picks are locked</h1>
+        <p className="text-muted-foreground">The tournament has kicked off — entries are final.</p>
+        <Link href="/" className="glow-neon inline-block rounded-xl bg-neon px-5 py-3 font-extrabold uppercase tracking-wide text-neon-foreground">
           See the leaderboard
         </Link>
       </div>
@@ -60,14 +60,16 @@ export default async function PickPage() {
 
   return (
     <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="text-3xl text-[var(--color-pitch-dark)]">Make your picks</h1>
-        <p className="text-neutral-600">
-          Pick <strong>one team from each of the 12 tiers</strong>.{" "}
-          <Link href="/how-it-works" className="underline">Scoring details</Link>
+      <header className="pt-2 text-center">
+        <h1 className="text-4xl font-extrabold">
+          Make your <span className="text-neon text-glow">picks</span>
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Pick <strong className="text-foreground">one team from each of the 12 tiers</strong>.{" "}
+          <Link href="/how-it-works" className="font-semibold text-neon hover:underline">Scoring details</Link>
         </p>
         {lockAt && (
-          <p className="mt-1 text-sm font-semibold text-[var(--color-flame)]">
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-neon">
             <LockCountdown lockAt={lockAt.toISOString()} />
           </p>
         )}

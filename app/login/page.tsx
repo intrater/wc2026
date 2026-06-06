@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { sendMagicLink, type MagicLinkState } from "@/lib/auth/actions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState<MagicLinkState, FormData>(
@@ -11,11 +13,11 @@ export default function LoginPage() {
 
   if (state.ok) {
     return (
-      <div className="space-y-4 text-center">
+      <div className="mx-auto max-w-md space-y-4 pt-10 text-center">
         <div className="text-5xl">📬</div>
-        <h1 className="text-3xl text-[var(--color-pitch-dark)]">Check your email</h1>
-        <p className="text-neutral-600">
-          We sent a sign-in link to <strong>{state.email}</strong>. Tap it to make or edit
+        <h1 className="text-3xl font-extrabold">Check your email</h1>
+        <p className="text-muted-foreground">
+          We sent a sign-in link to <strong className="text-foreground">{state.email}</strong>. Tap it to make or edit
           your picks.
         </p>
       </div>
@@ -23,47 +25,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-6">
+    <div className="mx-auto max-w-md space-y-6 pt-6">
       <div className="text-center">
-        <div className="text-5xl">🏆</div>
-        <h1 className="mt-2 text-3xl text-[var(--color-pitch-dark)]">Join the Pool</h1>
-        <p className="mt-1 text-neutral-600">
+        <p className="text-xs font-bold uppercase tracking-[0.35em] text-muted-foreground">World Cup 2026</p>
+        <h1 className="mt-2 text-4xl font-extrabold">
+          Join the <span className="text-neon text-glow">Pool</span>
+        </h1>
+        <p className="mt-2 text-muted-foreground">
           Enter your name and email to draft your 12 teams. We&apos;ll email you a link —
           no password.
         </p>
       </div>
 
-      <form action={formAction} className="space-y-4 rounded-2xl bg-white p-6 shadow-lg">
-        <label className="block">
-          <span className="text-sm font-semibold">Your name</span>
-          <input
-            name="display_name"
-            required
-            placeholder="John Intrater"
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-lg"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-semibold">Email</span>
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="john.intrater@gmail.com"
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-lg"
-          />
-        </label>
-        {state.error && <p className="text-sm text-[var(--color-flame)]">{state.error}</p>}
+      <form action={formAction} className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-xl">
+        <div className="space-y-1.5">
+          <Label htmlFor="display_name">Your name</Label>
+          <Input id="display_name" name="display_name" required placeholder="John Intrater" className="h-11 text-base" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" required placeholder="john.intrater@gmail.com" className="h-11 text-base" />
+        </div>
+        {state.error && <p className="text-sm text-destructive">{state.error}</p>}
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-[var(--color-pitch)] px-4 py-3 text-lg font-bold text-white disabled:opacity-60"
+          className="glow-neon w-full rounded-xl bg-neon px-4 py-3 text-base font-extrabold uppercase tracking-wide text-neon-foreground transition-transform active:translate-y-px disabled:opacity-60"
         >
           {pending ? "Sending…" : "Send my sign-in link"}
         </button>
       </form>
 
-      <p className="text-center text-sm text-neutral-500">
+      <p className="text-center text-sm text-muted-foreground">
         Already entered? Use the same email — the link lets you edit until kickoff.
       </p>
     </div>

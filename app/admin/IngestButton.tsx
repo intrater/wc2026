@@ -18,11 +18,11 @@ export function IngestButton() {
           })
         }
         disabled={pending}
-        className="rounded-lg bg-[var(--color-pitch)] px-4 py-2 font-semibold text-white disabled:opacity-60"
+        className="rounded-lg bg-neon px-4 py-2 font-semibold text-neon-foreground disabled:opacity-60"
       >
         {pending ? "Syncing…" : "Sync results now"}
       </button>
-      {msg && <pre className="overflow-x-auto rounded bg-neutral-100 p-2 text-xs">{msg}</pre>}
+      {msg && <pre className="overflow-x-auto rounded bg-muted p-2 text-xs">{msg}</pre>}
     </div>
   );
 }

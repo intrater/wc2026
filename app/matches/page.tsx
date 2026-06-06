@@ -36,8 +36,8 @@ export default async function MatchesPage() {
   const rows = matches ?? [];
   if (rows.length === 0) {
     return (
-      <div className="text-center text-neutral-500">
-        <h1 className="mb-2 text-2xl font-bold text-[var(--color-pitch-dark)]">Matches</h1>
+      <div className="pt-10 text-center text-muted-foreground">
+        <h1 className="mb-2 text-3xl font-extrabold text-foreground">Matches</h1>
         The schedule appears once results start syncing. ⚽️
       </div>
     );
@@ -73,34 +73,34 @@ export default async function MatchesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="text-center">
-        <h1 className="text-2xl font-bold text-[var(--color-pitch-dark)]">Matches</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+      <header className="pt-2 text-center">
+        <h1 className="text-3xl font-extrabold">Matches</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           Every match in the tournament. Scores update automatically after each game ends.
         </p>
       </header>
       {!user && (
-        <p className="text-center text-sm text-neutral-500">
-          <Link href="/login" className="underline">Sign in</Link> to see which of your teams are playing.
+        <p className="text-center text-sm text-muted-foreground">
+          <Link href="/login" className="font-semibold text-neon hover:underline">Sign in</Link> to see which of your teams are playing.
         </p>
       )}
 
       {myMatches.length > 0 && (
         <section>
-          <h2 className="mb-2 font-bold text-[var(--color-pitch-dark)]">⭐ Your matches</h2>
+          <h2 className="mb-2 font-bold text-neon">⭐ Your matches</h2>
           <div className="space-y-2">{myMatches.map(renderRow)}</div>
         </section>
       )}
 
       {myMatches.length > 0 && (
-        <h2 className="border-t border-neutral-200 pt-4 text-center text-sm font-semibold text-neutral-400">
+        <h2 className="border-t border-border pt-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
           All matches
         </h2>
       )}
 
       {STAGE_ORDER.filter((s) => byStage.has(s)).map((stage) => (
         <section key={stage}>
-          <h2 className="mb-2 font-bold text-neutral-700">{STAGE_LABEL[stage]}</h2>
+          <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">{STAGE_LABEL[stage]}</h2>
           <div className="space-y-2">{byStage.get(stage)!.map(renderRow)}</div>
         </section>
       ))}
@@ -116,29 +116,29 @@ function MatchRow({
 }) {
   const mine = [home, away].filter((t): t is TeamInfo => !!t && myTeamIds.has(t.id));
   return (
-    <div className="rounded-xl bg-white p-3 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <div className="flex items-center gap-2">
         <TeamSide team={home} mine={!!home && myTeamIds.has(home.id)} />
         <div className="px-2 text-center">
           {played ? (
-            <span className="text-lg font-extrabold">{homeGoals}–{awayGoals}</span>
+            <span className="text-lg font-extrabold tabular-nums">{homeGoals}–{awayGoals}</span>
           ) : (
-            <span className="text-xs text-neutral-400">{group ? `Grp ${group}` : "vs"}</span>
+            <span className="text-xs text-muted-foreground">{group ? `Grp ${group}` : "vs"}</span>
           )}
         </div>
         <TeamSide team={away} mine={!!away && myTeamIds.has(away.id)} alignRight />
       </div>
       {signedIn && mine.length > 0 && (
-        <div className="mt-2 border-t pt-2 text-xs">
+        <div className="mt-2 border-t border-border pt-2 text-xs">
           {mine.length === 2 ? (
-            <span className="font-semibold text-[var(--color-pitch-dark)]">⚡ Both your teams!</span>
+            <span className="font-semibold text-neon">⚡ Both your teams!</span>
           ) : (
-            <span className="font-semibold text-[var(--color-pitch-dark)]">
+            <span className="font-semibold text-neon">
               You have {mine[0].flag} {mine[0].name}
             </span>
           )}
           {mine.some((t) => t.goalBonus) && (
-            <span className="ml-2 text-[var(--color-flame)]">⚽ goals score you points</span>
+            <span className="ml-2 text-neon/80">⚽ goals score you points</span>
           )}
         </div>
       )}
@@ -150,7 +150,7 @@ function TeamSide({ team, mine, alignRight }: { team?: TeamInfo; mine: boolean; 
   return (
     <div className={`flex flex-1 items-center gap-2 ${alignRight ? "flex-row-reverse text-right" : ""}`}>
       <span className="text-2xl">{team?.flag ?? "🏳️"}</span>
-      <span className={`font-semibold ${mine ? "text-[var(--color-pitch-dark)]" : ""}`}>
+      <span className={`font-semibold ${mine ? "text-neon" : ""}`}>
         {team?.name ?? "TBD"}
         {mine && " ⭐"}
       </span>

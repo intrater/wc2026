@@ -11,7 +11,7 @@ export const metadata = { title: "Scoring · World Cup 2026 Pool" };
 
 function Pts({ v }: { v: number }) {
   return (
-    <span className="shrink-0 rounded-full bg-[var(--color-pitch)]/10 px-2.5 py-1 text-sm font-extrabold text-[var(--color-pitch-dark)]">
+    <span className="shrink-0 rounded-full bg-neon/15 px-2.5 py-1 text-sm font-extrabold tabular-nums text-neon">
       +{v}
     </span>
   );
@@ -19,10 +19,10 @@ function Pts({ v }: { v: number }) {
 
 function Row({ label, sub, v }: { label: string; sub?: string; v: number }) {
   return (
-    <li className="flex items-center justify-between gap-3 border-b border-neutral-100 py-2 last:border-0">
+    <li className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-0">
       <span>
         <span className="font-semibold">{label}</span>
-        {sub && <span className="block text-xs text-neutral-500">{sub}</span>}
+        {sub && <span className="block text-xs text-muted-foreground">{sub}</span>}
       </span>
       <Pts v={v} />
     </li>
@@ -31,25 +31,27 @@ function Row({ label, sub, v }: { label: string; sub?: string; v: number }) {
 
 function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
       <h2 className="text-xl font-bold">{title}</h2>
-      {hint && <p className="mt-0.5 text-sm text-neutral-500">{hint}</p>}
+      {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
       <ul className="mt-2">{children}</ul>
     </section>
   );
 }
 
 function Note({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 rounded-lg bg-neutral-50 p-2 text-xs text-neutral-600">{children}</p>;
+  return <p className="mt-3 rounded-lg bg-muted/60 p-2.5 text-xs text-muted-foreground">{children}</p>;
 }
 
 export default function ScoringPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      <header className="text-center">
-        <h1 className="text-3xl text-[var(--color-pitch-dark)]">Scoring details</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Every way to put points on the board. Scoring is <strong>per team</strong> — each of your
+      <header className="pt-2 text-center">
+        <h1 className="text-4xl font-extrabold">
+          Scoring <span className="text-neon text-glow">details</span>
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Every way to put points on the board. Scoring is <strong className="text-foreground">per team</strong> — each of your
           12 teams earns on its own.
         </p>
       </header>

@@ -32,10 +32,10 @@ export function SharePool() {
   return (
     <button
       onClick={share}
-      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-pitch)] px-6 py-4 text-lg font-extrabold text-white shadow-sm transition hover:opacity-90"
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-4 text-base font-bold text-foreground transition-colors hover:border-neon/50 hover:text-neon"
     >
       {copied ? (
-        "✅ Link copied — send it to your friends!"
+        <span className="text-neon">Link copied — send it to your friends!</span>
       ) : (
         <>
           <ShareIcon />
