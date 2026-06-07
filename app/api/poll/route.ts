@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runIngest } from "@/lib/api-football/ingest";
 import { ensureDailySnapshot } from "@/lib/standings/snapshot";
+import { maybeGenerateRecap } from "@/lib/recap/generate";
 
 export const dynamic = "force-dynamic";
 // Recap-day passes run ingest + recompute + Claude in one invocation; normal polls
@@ -43,7 +44,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, ...stages }, { status: 500 });
   }
 
-  // Stage 3 (recap) is wired in U7.
+  try {
+    stages.recap = await maybeGenerateRecap(admin);
+  } catch (e) {
+    stages.recap = { error: e instanceof Error ? e.message : "recap failed" };
+  }
 
   return NextResponse.json({ ok: true, ...stages });
 }
