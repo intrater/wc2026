@@ -24,6 +24,7 @@ This app needs three external accounts. Fill the matching values in `.env.local`
 | **Supabase** | A project (free tier OK to start) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
 | **API-Football** | api-sports.io account, **Pro tier (~$19/mo)** — not the free tier | `API_FOOTBALL_KEY` |
 | **Vercel** | Project linked to this repo (Pro, for per-minute cron) | env vars + `CRON_SECRET` |
+| **Anthropic** | API key for the nightly recap narrative (pennies/day) | `ANTHROPIC_API_KEY` |
 
 `ADMIN_EMAIL` controls who gets admin rights (results override, paid toggle, tier freeze).
 
