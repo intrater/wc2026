@@ -12,17 +12,22 @@ import { getPhase } from "@/lib/state/phase";
 export async function NavBar() {
   const [user, phase] = await Promise.all([getUser(), getPhase()]);
   let hasEntry = false;
+  let entryId: string | null = null;
   if (user) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("entries")
-      .select("submitted_at")
+      .select("id, submitted_at")
       .eq("user_id", user.id)
       .maybeSingle();
     hasEntry = !!data?.submitted_at;
+    entryId = data?.id ?? null;
   }
 
   const showMatches = phase.isLocked || hasEntry;
+  // One concept, phase-appropriate surface: the pick editor until lock, then the
+  // live scorecard (entry page) for the rest of the tournament.
+  const myTeamHref = phase.isLocked && entryId ? `/entry/${entryId}` : "/pick";
 
   return (
     <nav className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
@@ -40,7 +45,7 @@ export async function NavBar() {
           <Link href="/recap" className="text-muted-foreground transition-colors hover:text-foreground">Recap</Link>
         )}
         {hasEntry && (
-          <Link href="/pick" className="text-muted-foreground transition-colors hover:text-foreground">My Picks</Link>
+          <Link href={myTeamHref} className="text-muted-foreground transition-colors hover:text-foreground">My Team</Link>
         )}
         <Link href="/how-it-works" className="ml-auto text-muted-foreground transition-colors hover:text-foreground">Rules</Link>
         {process.env.NODE_ENV === "development" && (
