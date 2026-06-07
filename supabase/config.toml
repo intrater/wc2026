@@ -245,10 +245,21 @@ pass = "env(SMTP_PASS)"
 admin_email = "john.intrater@gmail.com"
 sender_name = "World Cup 2026 Pool"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Sign-in email templates — MUST use the stateless {{ .TokenHash }} link, not the
+# default {{ .ConfirmationURL }}. The default uses PKCE, which only works when the
+# link is opened in the same browser that requested it; players who sign up inside
+# an in-app browser (iMessage/Instagram/...) and open the email elsewhere hit
+# "Link expired or invalid". /auth/confirm verifies token_hash statelessly.
+# Configured in the dashboard (2026-06-07); mirrored here so `supabase config push`
+# doesn't reset it. signInWithOtp sends magic_link to returning users and
+# confirmation to first-timers — both use the same template.
+[auth.email.template.magic_link]
+subject = "Your World Cup 2026 Pool sign-in link ⚽️"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Your World Cup 2026 Pool sign-in link ⚽️"
+content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
