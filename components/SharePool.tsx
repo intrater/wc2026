@@ -6,7 +6,7 @@ import { useState } from "react";
  * "Invite friends" CTA. Uses the native share sheet on mobile, falls back to
  * copy-to-clipboard. Shares the pool's public URL (the current origin).
  */
-export function SharePool() {
+export function SharePool({ compact = false }: { compact?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
@@ -27,6 +27,18 @@ export function SharePool() {
     } catch {
       setCopied(false);
     }
+  }
+
+  if (compact) {
+    // Sits in the homepage action row — third-width cell, short labels.
+    return (
+      <button
+        onClick={share}
+        className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-card px-1 py-4 text-base font-bold whitespace-nowrap text-foreground transition-colors hover:border-neon/50 hover:text-neon"
+      >
+        {copied ? <span className="text-neon">Copied! 🎉</span> : "Invite friends"}
+      </button>
+    );
   }
 
   return (

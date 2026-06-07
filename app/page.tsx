@@ -15,11 +15,15 @@ export default async function HomePage() {
   const user = await getUser();
 
   const mine = user
-    ? await supabase.from("entries").select("submitted_at").eq("user_id", user.id).maybeSingle()
+    ? await supabase.from("entries").select("submitted_at, paid").eq("user_id", user.id).maybeSingle()
     : { data: null };
 
   const hasSubmitted = !!mine?.data?.submitted_at;
+  const owesEntryFee = hasSubmitted && !mine?.data?.paid;
   const lockAt = phase.lockAt ? phase.lockAt.toISOString() : null;
+  // Post-lock: everyone sees the board. Pre-lock: only entrants who already
+  // submitted — anyone mid-funnel stays focused on the picks CTA.
+  const showBoard = phase.phase !== "pre_lock" || hasSubmitted;
 
   return (
     <div className="space-y-6">
@@ -37,36 +41,71 @@ export default async function HomePage() {
         )}
       </header>
 
-      <Rules />
-
-      {!phase.isLocked && (
-        <Link
-          href="/pick"
-          className="glow-neon group flex items-center justify-center gap-2 rounded-2xl bg-neon px-6 py-4 text-center text-lg font-extrabold text-neon-foreground transition-transform active:translate-y-px"
-        >
-          {hasSubmitted ? "Edit your picks" : "Make your picks"}
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5 transition-transform group-hover:translate-x-1"
-            aria-hidden="true"
-          >
-            <path d="M5 12h14" />
-            <path d="m13 6 6 6-6 6" />
-          </svg>
-        </Link>
+      {showBoard ? (
+        /* Tracking mode (submitted pre-lock, or anyone post-lock): the board IS the
+           page — no "How it works" noise. Editing drops to the bottom, pre-lock only. */
+        <>
+          <Leaderboard supabase={supabase} />
+          {/* One action row, equal-width buttons spanning the container. */}
+          <div className="flex gap-2">
+            {/* Edit picks is the primary action until kickoff locks it away. */}
+            {!phase.isLocked && hasSubmitted && (
+              <Link
+                href="/pick"
+                className="glow-neon flex flex-1 items-center justify-center rounded-2xl bg-neon px-1 py-4 text-base font-extrabold text-neon-foreground whitespace-nowrap transition-transform active:translate-y-px"
+              >
+                Edit picks
+              </Link>
+            )}
+            <SharePool compact />
+            {/* Only entrants who still owe see this; gone once marked paid in admin. */}
+            {owesEntryFee && (
+              <a
+                href="https://venmo.com/u/john-intrater"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-card px-1 py-4 text-base font-bold text-foreground whitespace-nowrap transition-colors hover:border-neon/50 hover:text-neon"
+              >
+                Pay via Venmo
+              </a>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Pick mode: conversion-focused — rules + the one big CTA. */
+        <>
+          <Rules />
+          {!phase.isLocked && (
+            <Link
+              href="/pick"
+              className="glow-neon group flex items-center justify-center gap-2 rounded-2xl bg-neon px-6 py-4 text-center text-lg font-extrabold text-neon-foreground transition-transform active:translate-y-px"
+            >
+              Make your picks
+              <PickArrow />
+            </Link>
+          )}
+          <SharePool />
+        </>
       )}
-
-      {/* Post-lock: everyone sees the board. Pre-lock: only entrants who already
-          submitted — anyone mid-funnel stays focused on the picks CTA. */}
-      {(phase.phase !== "pre_lock" || hasSubmitted) && <Leaderboard supabase={supabase} />}
-
-      <SharePool />
     </div>
+  );
+}
+
+function PickArrow() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5 transition-transform group-hover:translate-x-1"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14" />
+      <path d="m13 6 6 6-6 6" />
+    </svg>
   );
 }
 
@@ -112,6 +151,7 @@ function Rules() {
 }
 
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
+  const phase = await getPhase(); // cached per-request
   const today = todayBusinessDay();
   const [{ data: rows }, { data: snapshots }] = await Promise.all([
     supabase
@@ -137,7 +177,8 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   );
   const byEntry = new Map(scores.map((s) => [s.entry_id, s]));
   const snapByEntry = new Map((snapshots ?? []).map((s) => [s.entry_id, { rank: s.rank, total: Number(s.total) }]));
-  const haveSnapshots = snapByEntry.size > 0;
+  // Movement is meaningless before games can score — suppress the line pre-lock.
+  const haveSnapshots = phase.isLocked && snapByEntry.size > 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
