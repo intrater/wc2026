@@ -63,7 +63,6 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
         {score && (
           <p className="text-muted-foreground">
             <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts
-            <span className="ml-2 text-sm text-muted-foreground">({score.group_stage_total} in group play)</span>
           </p>
         )}
       </header>

@@ -165,7 +165,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   const [{ data: rows }, { data: snapshots }] = await Promise.all([
     supabase
       .from("scores")
-      .select("entry_id, total, group_stage_total, underdog_total, upset_total, entries(display_name)"),
+      .select("entry_id, total, underdog_total, upset_total, entries(display_name)"),
     supabase.from("daily_standings").select("entry_id, total, rank").eq("business_day", today),
   ]);
 
@@ -207,7 +207,6 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                 <span className="flex-1 font-semibold">{e?.display_name}</span>
                 <span className="text-right">
                   <span className="block text-lg font-extrabold tabular-nums text-foreground">{s.total}</span>
-                  <span className="block text-xs text-muted-foreground">grp {s.group_stage_total}</span>
                   {haveSnapshots && <MovementLine move={move} />}
                 </span>
               </Link>
