@@ -61,7 +61,9 @@ export default async function HomePage() {
         </Link>
       )}
 
-      {phase.phase !== "pre_lock" && <Leaderboard supabase={supabase} />}
+      {/* Post-lock: everyone sees the board. Pre-lock: only entrants who already
+          submitted — anyone mid-funnel stays focused on the picks CTA. */}
+      {(phase.phase !== "pre_lock" || hasSubmitted) && <Leaderboard supabase={supabase} />}
 
       <SharePool />
     </div>
@@ -114,7 +116,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   const [{ data: rows }, { data: snapshots }] = await Promise.all([
     supabase
       .from("scores")
-      .select("entry_id, total, group_stage_total, underdog_total, upset_total, entries(display_name, paid)"),
+      .select("entry_id, total, group_stage_total, underdog_total, upset_total, entries(display_name)"),
     supabase.from("daily_standings").select("entry_id, total, rank").eq("business_day", today),
   ]);
 
@@ -146,16 +148,13 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
       <ol>
         {ranked.map((r) => {
           const s = byEntry.get(r.entryId)!;
-          const e = s.entries as unknown as { display_name: string; paid: boolean };
+          const e = s.entries as unknown as { display_name: string };
           const move = movementFor({ rank: r.rank, total: r.total }, snapByEntry.get(r.entryId));
           return (
             <li key={r.entryId}>
               <Link href={`/entry/${r.entryId}`} className="flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-accent/40">
                 <span className={`w-7 text-center font-mono font-bold ${r.rank === 1 ? "text-neon" : "text-muted-foreground"}`}>{r.rank}</span>
-                <span className="flex-1 font-semibold">
-                  {e?.display_name}
-                  {!e?.paid && <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs font-medium text-destructive">unpaid</span>}
-                </span>
+                <span className="flex-1 font-semibold">{e?.display_name}</span>
                 <span className="text-right">
                   <span className="block text-lg font-extrabold tabular-nums text-foreground">{s.total}</span>
                   <span className="block text-xs text-muted-foreground">grp {s.group_stage_total}</span>

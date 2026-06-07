@@ -29,10 +29,7 @@ export default async function RostersPage() {
           return (
             <li key={e.id}>
               <Link href={`/entry/${e.id}`} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm transition-colors hover:border-neon/40 hover:bg-accent/40">
-                <span className="flex-1 font-semibold">
-                  {e.display_name}
-                  {!e.paid && <span className="ml-2 rounded bg-destructive/15 px-1.5 py-0.5 text-xs font-medium text-destructive">unpaid</span>}
-                </span>
+                <span className="flex-1 font-semibold">{e.display_name}</span>
                 {phase.phase !== "pre_lock" && total != null && (
                   <span className="font-extrabold tabular-nums text-neon">{total}</span>
                 )}

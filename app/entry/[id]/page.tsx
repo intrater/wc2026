@@ -60,7 +60,6 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
             <span className="ml-2 text-sm text-muted-foreground">({score.group_stage_total} in group play)</span>
           </p>
         )}
-        {!entry.paid && <p className="text-xs font-medium text-destructive">unpaid</p>}
       </header>
 
       <TodayAndNext teamIds={picks.map((p) => p.team_id)} teamMap={teamMap} />
