@@ -4,11 +4,14 @@ export const WORLD_CUP_LEAGUE_ID = 1;
 export const WORLD_CUP_SEASON = 2026;
 
 export interface ApiFixture {
-  fixture: { id: number; date: string; status: { short: string } };
+  fixture: { id: number; date: string; status: { short: string; elapsed: number | null } };
   league: { round: string };
   teams: { home: { id: number; name: string }; away: { id: number; name: string } };
+  // Current in-progress score during live play; includes ET goals, excludes shootout.
   goals: { home: number | null; away: number | null };
   score: {
+    halftime: { home: number | null; away: number | null };
+    fulltime: { home: number | null; away: number | null }; // 90' score only — not used for display
     extratime: { home: number | null; away: number | null };
     penalty: { home: number | null; away: number | null };
   };
@@ -59,6 +62,42 @@ export async function getStandings(): Promise<ApiStandingRow[]> {
 }
 
 const TERMINAL = new Set(["FT", "AET", "PEN", "AWD", "WO"]);
+const LIVE = new Set(["1H", "HT", "2H", "ET", "BT", "P"]);
+const NOT_OCCURRING = new Set(["PST", "CANC", "ABD"]);
+const PAUSED = new Set(["SUSP", "INT"]);
+const UPCOMING = new Set(["TBD", "NS"]);
+
+/**
+ * Display-only live state for a fixture (U2). Never feeds scoring.
+ *  - set:   match is live → current score from goals.* (already includes ET goals;
+ *           never score.fulltime, which is the 90' score only) + HT score once present
+ *  - clear: terminal, not-occurring (PST/CANC/ABD), or back-to-scheduled → null the columns
+ *  - keep:  paused (SUSP/INT, expected to resume — last live score stays displayable)
+ *           or an unknown status string (don't touch data we don't understand)
+ */
+export type LiveState =
+  | { action: "set"; liveHome: number; liveAway: number; htHome: number | null; htAway: number | null }
+  | { action: "clear" }
+  | { action: "keep" };
+
+export function deriveLiveState(f: ApiFixture): LiveState {
+  const status = f.fixture.status.short;
+  if (LIVE.has(status)) {
+    return {
+      action: "set",
+      liveHome: f.goals.home ?? 0,
+      liveAway: f.goals.away ?? 0,
+      htHome: f.score.halftime?.home ?? null,
+      htAway: f.score.halftime?.away ?? null,
+    };
+  }
+  if (TERMINAL.has(status) || NOT_OCCURRING.has(status) || UPCOMING.has(status)) {
+    return { action: "clear" };
+  }
+  if (PAUSED.has(status)) return { action: "keep" };
+  // Unknown/new status string: leave stored state alone and let ingest log it.
+  return { action: "keep" };
+}
 
 export interface DerivedResult {
   homeGoals: number;

@@ -1,8 +1,24 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getFixtures, getStandings, deriveResult } from "./client";
+import { getFixtures, getStandings, deriveResult, deriveLiveState } from "./client";
 import { mapRound } from "./rounds";
 import { resolveSeedName } from "./names";
 import { runRecompute } from "@/lib/scoring/persist";
+import {
+  UPCOMING_STATUSES,
+  LIVE_STATUSES,
+  PAUSED_STATUSES,
+  NOT_OCCURRING_STATUSES,
+  TERMINAL_STATUSES,
+} from "@/lib/matches/day";
+
+/** Every status we understand; anything else gets logged so surprises are visible. */
+const TERMINAL_OR_KNOWN = new Set<string>([
+  ...UPCOMING_STATUSES,
+  ...LIVE_STATUSES,
+  ...PAUSED_STATUSES,
+  ...NOT_OCCURRING_STATUSES,
+  ...TERMINAL_STATUSES,
+]);
 
 export interface IngestSummary {
   teamsMatched: number;
@@ -80,8 +96,29 @@ export async function runIngest(admin: SupabaseClient): Promise<IngestSummary> {
       away_team_id: awayId,
       status: f.fixture.status.short,
       needs_attention: stage === null,
+      // Bump explicitly: the column default only fires at insert, and the calendar's
+      // staleness hint reads updated_at on every poll.
+      updated_at: new Date().toISOString(),
     };
     if (stage === null) unknownRounds++;
+
+    // Display-only live state (U2): set while live, clear on terminal/not-occurring,
+    // keep (omit columns) while paused or on an unknown status string.
+    const liveState = deriveLiveState(f);
+    if (liveState.action === "set") {
+      row.live_home_goals = liveState.liveHome;
+      row.live_away_goals = liveState.liveAway;
+      row.ht_home_goals = liveState.htHome;
+      row.ht_away_goals = liveState.htAway;
+    } else if (liveState.action === "clear") {
+      row.live_home_goals = null;
+      row.live_away_goals = null;
+      row.ht_home_goals = null;
+      row.ht_away_goals = null;
+    }
+    if (!TERMINAL_OR_KNOWN.has(f.fixture.status.short)) {
+      console.warn(`[ingest] unknown fixture status "${f.fixture.status.short}" (fixture ${f.fixture.id})`);
+    }
 
     // group label = home team's group (set on teams during standings sync)
     if (stage === "group" && homeId) {

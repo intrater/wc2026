@@ -67,6 +67,12 @@ export async function overrideResult(formData: FormData) {
       status: "FT",
       manual_override: true,
       needs_attention: false,
+      // Ingest skips overridden rows, so its clear-on-terminal never runs for them:
+      // clear live display state here or it would linger forever (U2).
+      live_home_goals: null,
+      live_away_goals: null,
+      ht_home_goals: null,
+      ht_away_goals: null,
       updated_at: new Date().toISOString(),
     })
     .eq("fixture_id", fixtureId);
