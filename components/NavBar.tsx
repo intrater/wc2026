@@ -33,24 +33,26 @@ export async function NavBar() {
 
   return (
     <nav className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-3xl items-center gap-5 px-4 py-3 text-sm font-semibold">
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 text-sm font-semibold">
         <Link href="/" className="flex items-center gap-1.5 tracking-tight">
           <span className="text-base">🇺🇸</span>
           <span className="text-foreground">Home</span>
         </Link>
-        {showMatches && (
-          <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
-        )}
-        {phase.isLocked && hasEntry && (
-          <Link href="/recap" className="text-muted-foreground transition-colors hover:text-foreground">Recap</Link>
-        )}
-        {hasEntry && (
-          <Link href={myTeamHref} className="text-muted-foreground transition-colors hover:text-foreground">My Team</Link>
-        )}
-        <Link href="/how-it-works" className="ml-auto text-muted-foreground transition-colors hover:text-foreground">Rules</Link>
-        {process.env.NODE_ENV === "development" && (
-          <Link href="/dev-login" className="rounded-md bg-amber-400/15 px-2 py-0.5 text-xs text-amber-300 ring-1 ring-amber-400/30">🔧 Dev</Link>
-        )}
+        <div className="flex items-center gap-5">
+          {showMatches && (
+            <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
+          )}
+          {phase.isLocked && hasEntry && (
+            <Link href="/recap" className="text-muted-foreground transition-colors hover:text-foreground">Recap</Link>
+          )}
+          {hasEntry && (
+            <Link href={myTeamHref} className="text-muted-foreground transition-colors hover:text-foreground">My Team</Link>
+          )}
+          <Link href="/how-it-works" className="text-muted-foreground transition-colors hover:text-foreground">Rules</Link>
+          {process.env.NODE_ENV === "development" && (
+            <Link href="/dev-login" className="rounded-md bg-amber-400/15 px-2 py-0.5 text-xs text-amber-300 ring-1 ring-amber-400/30">🔧 Dev</Link>
+          )}
+        </div>
       </div>
     </nav>
   );
