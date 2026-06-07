@@ -36,9 +36,7 @@ export async function NavBar() {
       <div className="mx-auto flex max-w-3xl items-center gap-5 px-4 py-3 text-sm font-semibold">
         <Link href="/" className="flex items-center gap-1.5 tracking-tight">
           <span className="text-base">🇺🇸</span>
-          <span className="text-foreground">
-            WC<span className="text-neon">26</span>
-          </span>
+          <span className="text-foreground">Home</span>
         </Link>
         {showMatches && (
           <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
