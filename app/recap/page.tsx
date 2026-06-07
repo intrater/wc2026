@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { checkPoolAccess } from "@/lib/auth/poolAccess";
+import { redirect } from "next/navigation";
 import type { Recap, RecapStats } from "@/lib/db/types";
 import { formatBusinessDayLabel } from "@/lib/matches/day";
 
@@ -10,6 +12,10 @@ export const dynamic = "force-dynamic";
  * see plan Scope Boundaries. Email delivery is U9 (deferred).
  */
 export default async function RecapPage() {
+  const access = await checkPoolAccess();
+  if (access === "signin") redirect("/login");
+  if (access === "no-entry") redirect("/not-entered");
+
   const supabase = await createClient();
   const { data } = await supabase
     .from("recaps")

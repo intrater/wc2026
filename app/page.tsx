@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { checkPoolAccess } from "@/lib/auth/poolAccess";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
 import { getPhase } from "@/lib/state/phase";
@@ -10,6 +12,10 @@ import { todayBusinessDay } from "@/lib/matches/day";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const access = await checkPoolAccess();
+  if (access === "signin") redirect("/login");
+  if (access === "no-entry") redirect("/not-entered");
+
   const supabase = await createClient();
   const phase = await getPhase();
   const user = await getUser();

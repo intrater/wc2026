@@ -24,7 +24,9 @@ export async function NavBar() {
     entryId = data?.id ?? null;
   }
 
-  const showMatches = phase.isLocked || hasEntry;
+  // Post-lock privacy (0004): the pool is entrants-only once live, so every pool
+  // link is gated on having a submitted entry — in any phase.
+  const showMatches = hasEntry;
   // One concept, phase-appropriate surface: the pick editor until lock, then the
   // live scorecard (entry page) for the rest of the tournament.
   const myTeamHref = phase.isLocked && entryId ? `/entry/${entryId}` : "/pick";
@@ -41,7 +43,7 @@ export async function NavBar() {
         {showMatches && (
           <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
         )}
-        {phase.isLocked && (
+        {phase.isLocked && hasEntry && (
           <Link href="/recap" className="text-muted-foreground transition-colors hover:text-foreground">Recap</Link>
         )}
         {hasEntry && (

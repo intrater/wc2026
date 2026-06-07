@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { checkPoolAccess } from "@/lib/auth/poolAccess";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamMap } from "@/lib/views/data";
 import { TIER_LABELS } from "@/lib/tiers/labels";
@@ -9,6 +11,10 @@ import type { TeamInfo } from "@/lib/views/data";
 export const dynamic = "force-dynamic";
 
 export default async function EntryPage({ params }: { params: Promise<{ id: string }> }) {
+  const access = await checkPoolAccess();
+  if (access === "signin") redirect("/login");
+  if (access === "no-entry") redirect("/not-entered");
+
   const { id } = await params;
   const supabase = await createClient();
   const teamMap = await loadTeamMap();

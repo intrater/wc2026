@@ -1,10 +1,16 @@
 import Link from "next/link";
+import { checkPoolAccess } from "@/lib/auth/poolAccess";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPhase } from "@/lib/state/phase";
 
 export const dynamic = "force-dynamic";
 
 export default async function RostersPage() {
+  const access = await checkPoolAccess();
+  if (access === "signin") redirect("/login");
+  if (access === "no-entry") redirect("/not-entered");
+
   const supabase = await createClient();
   const phase = await getPhase();
 

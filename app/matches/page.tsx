@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { checkPoolAccess } from "@/lib/auth/poolAccess";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
 import { loadTeamMap } from "@/lib/views/data";
@@ -20,6 +22,10 @@ export default async function MatchesPage({
 }: {
   searchParams: Promise<{ date?: string; mine?: string }>;
 }) {
+  const access = await checkPoolAccess();
+  if (access === "signin") redirect("/login");
+  if (access === "no-entry") redirect("/not-entered");
+
   const params = await searchParams;
   const supabase = await createClient();
   const teamMap = await loadTeamMap();
