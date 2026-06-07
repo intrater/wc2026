@@ -409,29 +409,56 @@ Match card state machine (render time, from matches row):
 
 ---
 
-### U8. Recap surfaces: /recap feed + email blast
+### U8. Recap surface: /recap feed page
 
-**Goal:** Players can read recaps on the site and receive them by email the night they're generated.
+**Goal:** Players can read recaps on the site the night they're generated. (Email delivery is U9 — explicitly sequenced last per user decision.)
 
-**Requirements:** R7, R8
+**Requirements:** R7
 
 **Dependencies:** U7
 
 **Files:**
 - Create: `app/recap/page.tsx` (feed, newest first; renders narrative, falls back to stats digest; recaps are immutable — no post-publication correction detection, per Scope Boundaries)
-- Create: `lib/recap/email.ts` (blast: atomic emailed_at claim → recipients = all submitted entries' emails → `Promise.allSettled` → write `email_log` once)
-- Modify: `lib/recap/generate.ts` (invoke blast per the U7 stage-3 gate)
 - Modify: `components/NavBar.tsx` (Matches + Recap links visible to **all** viewers once `phase.isLocked` — moved out of the `hasEntry` gate, which currently leaves signed-out users with no nav path to the calendar at all; My Picks stays entry-gated)
+
+**Approach:**
+- `/recap`: public (consistent with post-lock app), feed of recap cards by day. Card hierarchy for the phone/group-chat scan pattern: header = day label ("June 12 · Day 2") + one-line hook (top mover or biggest upset) visible collapsed; expanded = narrative prose, then the structured stats digest (results, movers, upsets). Most recent recap expanded by default, prior days collapsed. Day label uses `dayNumber` from the stats jsonb (defined in U7).
+- Until U9 ships, `generate()` simply never enters the email stage (`emailed_at` stays null) — the recap is site-only and nothing else changes.
+
+**Patterns to follow:**
+- Page style of `app/how-it-works/page.tsx` (stacked cards); design-token constraint from U5 applies.
+
+**Test scenarios:**
+- Happy path: feed renders recaps newest-first; most recent expanded, older collapsed.
+- Edge case: recap with null narrative renders the stats digest as the body.
+- Edge case: no recaps yet (pre-tournament / before first day completes) → friendly empty state.
+- Edge case: NavBar shows Matches + Recap to a signed-out viewer once locked; My Picks remains entry-gated.
+
+**Verification:**
+- /recap renders narrative and digest against seeded data; nav reachable signed-out.
+
+---
+
+### U9. Recap email blast (deferred — built after everything else works)
+
+**Goal:** Email each day's recap to all entrants via Resend. Explicitly sequenced last (user decision): the site-only recap (U8) ships and proves itself first.
+
+**Requirements:** R8
+
+**Dependencies:** U7, U8
+
+**Files:**
+- Create: `lib/recap/email.ts` (blast: atomic emailed_at claim → recipients = all submitted entries' emails → `Promise.allSettled` → write `email_log` once)
+- Modify: `lib/recap/generate.ts` (enable the stage-3 email gate from U7)
 - Test: `lib/recap/email.test.ts` (recipient resolution + claim semantics with stubbed deliver)
 
 **Approach:**
-- Recipients: join `entries` (submitted) → `profiles.email` (dedupe; skip null emails). Subject like "Day 3 recap: {top-line hook} ⚽️"; body = narrative (or stats digest) + link to the site. Plain text first (matches existing emails); HTML polish optional later.
+- Recipients: join `entries` (submitted) → `profiles.email` (dedupe; skip null emails). Subject: `Day {dayNumber} recap: {top-line hook} ⚽️` — dayNumber read from the stats jsonb, never recomputed at send time. Body = narrative (or stats digest) + link to /recap. Plain text first (matches existing emails); HTML polish optional later.
 - Concurrency semantics (claim-then-blast): the blast begins with `update recaps set emailed_at = now() where business_day = $1 and emailed_at is null` — zero rows updated means another invocation owns the blast; bail. The winner is the **sole writer**: it sends to every recipient via `Promise.allSettled` and writes `email_log` (keyed by entry_id, never emails) exactly once at the end. Duplicates are structurally impossible; a crash mid-blast means missed emails (visible: `emailed_at` set but `email_log` absent/incomplete) that the admin can re-send manually. No per-recipient state, no read-modify-write anywhere.
-- `/recap`: public (consistent with post-lock app), feed of recap cards by day. Card hierarchy for the phone/group-chat scan pattern: header = day label ("June 12 · Day 2") + one-line hook (top mover or biggest upset) visible collapsed; expanded = narrative prose, then the structured stats digest (results, movers, upsets). Most recent recap expanded by default, prior days collapsed.
-- Subject line: `Day {dayNumber} recap: {hook} ⚽️` — dayNumber read from the stats jsonb (defined in U7), never recomputed at send time.
+- Backfill semantics on enablement: when U9 ships mid-tournament, prior days' recaps have `emailed_at` null — gate the blast to only the recap whose business_day is the current/most recent day, so enabling email doesn't blast a week of old recaps at once.
 
 **Patterns to follow:**
-- `deliver()` in `lib/email/receipt.ts` (env-gated, per-send try/catch); page style of `app/how-it-works/page.tsx` (stacked cards).
+- `deliver()` in `lib/email/receipt.ts` (env-gated, per-send try/catch).
 
 **Test scenarios:**
 - Happy path: 3 recipients, all succeed → email_log records 3 sent (by entry_id), emailed_at set.
@@ -440,10 +467,10 @@ Match card state machine (render time, from matches row):
 - Edge case: blast invoked when emailed_at is already set → no-op, no emails.
 - Edge case: entrant with no email in profile → skipped, not failed; counted in neither.
 - Edge case: email_log contains entry_ids only — assert no email address appears anywhere in the stored jsonb.
-- Integration: generate() on a completed day ends with recap visible on /recap and emails dispatched (stubbed transport in test).
+- Edge case: enabling U9 with 4 old un-emailed recaps → only the most recent day's recap blasts.
 
 **Verification:**
-- Local end-to-end with SMTP unset: logs "(SMTP not configured) would email…" per recipient; /recap renders narrative and digest.
+- Local end-to-end with SMTP unset: logs "(SMTP not configured) would email…" per recipient.
 
 ---
 
@@ -483,9 +510,12 @@ The calendar with live scores must exist when the first ball is kicked. Schema, 
 Leaderboard movement starts mattering once a day of results exists; snapshots (U4) will already have been accumulating from day one.
 
 ### Phase 3 — by end of first match day ideally, tolerable a day late: U7 → U8
-Recap engine + surfaces. Requires `ANTHROPIC_API_KEY` added to Vercel env.
+Recap engine + site feed (no email). Requires `ANTHROPIC_API_KEY` added to Vercel env.
 
-**Minimum cut (user decision):** the calendar (U1–U5) is the June 11 floor — it must be live at kickoff. Leaderboard movement (U6) by first results. The recap may slip days into the group stage: the fallback is a stats digest emailed manually via a one-off script using the existing `deliver()`, and `/recap` can ship as a "Recap coming soon" stub until U7 lands. Do not thin the calendar to force the recap in by day one.
+### Phase 4 — after everything else works (user decision): U9
+Email blast last. The recap lives on the site first; email enables once the rest has proven itself. Until then `emailed_at` stays null and the blast stage is simply absent.
+
+**Minimum cut (user decision):** the calendar (U1–U5) is the June 11 floor — it must be live at kickoff. Leaderboard movement (U6) by first results. The recap may slip days into the group stage, and `/recap` can ship as a "Recap coming soon" stub until U7 lands. Do not thin the calendar to force the recap in by day one.
 
 ---
 
