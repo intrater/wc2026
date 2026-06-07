@@ -25,7 +25,9 @@ export function DayNav({
   const next = i >= 0 && i < days.length - 1 ? days[i + 1] : null;
   const isToday = selected === today;
 
-  const arrow = "flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card font-bold";
+  // Generous 48px tap target (iOS HIG min is 44px), large chevron, active feedback.
+  const arrow =
+    "flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-2xl font-bold transition-colors hover:border-neon/50 hover:text-neon active:bg-accent/40";
 
   return (
     <nav className="flex items-center justify-between gap-2" aria-label="Match day">
