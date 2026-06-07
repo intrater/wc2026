@@ -42,7 +42,7 @@ export async function NavBar() {
         {hasEntry && (
           <Link href="/pick" className="text-muted-foreground transition-colors hover:text-foreground">My Picks</Link>
         )}
-        <Link href="/how-it-works" className="ml-auto text-muted-foreground transition-colors hover:text-foreground">Scoring</Link>
+        <Link href="/how-it-works" className="ml-auto text-muted-foreground transition-colors hover:text-foreground">Rules</Link>
         {process.env.NODE_ENV === "development" && (
           <Link href="/dev-login" className="rounded-md bg-amber-400/15 px-2 py-0.5 text-xs text-amber-300 ring-1 ring-amber-400/30">🔧 Dev</Link>
         )}
