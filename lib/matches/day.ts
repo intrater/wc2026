@@ -9,6 +9,10 @@ import type { Match } from "@/lib/db/types";
 // ---------- API-Football status buckets (verified against v3 docs) ----------
 // Shared constants so ingest (U2) and the recap day-done predicate (U7) can never
 // drift from the calendar's rendering.
+// Note: HT lives in LIVE_STATUSES on purpose — "is something happening in this
+// match right now" is true at halftime (entry-page Today highlight, live filters).
+// cardStateFor() refines HT into its own render state below; that refinement is
+// the ONLY place HT is treated specially.
 export const UPCOMING_STATUSES = ["TBD", "NS"] as const;
 export const LIVE_STATUSES = ["1H", "HT", "2H", "ET", "BT", "P"] as const;
 /** Mid-match pauses expected to resume (keep last live score). */
@@ -47,6 +51,29 @@ export function businessDayOf(kickoff: string | Date): string {
 /** Today's ET calendar date (YYYY-MM-DD). */
 export function todayBusinessDay(now: number = Date.now()): string {
   return ET_DAY.format(new Date(now));
+}
+
+// ---------- shared ET display formatters ----------
+const DAY_LABEL = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+});
+const KICKOFF_TIME = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** "Thursday, June 11" for an ET business day string (noon anchor avoids DST edges). */
+export function formatBusinessDayLabel(day: string): string {
+  return DAY_LABEL.format(new Date(`${day}T12:00:00-04:00`));
+}
+
+/** ET clock time for a kickoff timestamp, e.g. "3:00 PM". */
+export function formatKickoffTimeET(kickoff: string | Date): string {
+  return KICKOFF_TIME.format(typeof kickoff === "string" ? new Date(kickoff) : kickoff);
 }
 
 /** Group matches by ET business day; days ascending, matches by kickoff within a day. */

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { matchesHref } from "./href";
 
 /**
  * "My teams only" toggle (U5). Rendered only for viewers with a submitted entry.
@@ -6,11 +7,7 @@ import Link from "next/link";
  * history so Back doesn't step through filter states.
  */
 export function MyTeamsFilter({ date, active }: { date: string | null; active: boolean }) {
-  const q = new URLSearchParams();
-  if (date) q.set("date", date);
-  if (!active) q.set("mine", "1");
-  const qs = q.toString();
-  const href = qs ? `/matches?${qs}` : "/matches";
+  const href = matchesHref({ date, mine: !active });
 
   return (
     <div className="flex justify-center">

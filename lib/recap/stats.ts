@@ -100,7 +100,8 @@ export function buildDayStats(input: BuildStatsInput): RecapStats {
     };
   });
 
-  const movers = statEntries.filter((e) => e.pointsToday != null);
+  // Only genuine gainers — on a scoreless day nobody "had a day".
+  const movers = statEntries.filter((e) => (e.pointsToday ?? 0) > 0);
   const topGainer =
     movers.length > 0
       ? movers.reduce((a, b) => ((b.pointsToday ?? 0) > (a.pointsToday ?? 0) ? b : a)).displayName

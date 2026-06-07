@@ -10,8 +10,7 @@ import { getPhase } from "@/lib/state/phase";
  * stays entry-gated.
  */
 export async function NavBar() {
-  const user = await getUser();
-  const phase = await getPhase();
+  const [user, phase] = await Promise.all([getUser(), getPhase()]);
   let hasEntry = false;
   if (user) {
     const supabase = await createClient();

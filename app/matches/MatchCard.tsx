@@ -1,6 +1,6 @@
 import type { Match, MatchStage } from "@/lib/db/types";
 import type { TeamInfo } from "@/lib/views/data";
-import { cardStateFor, type CardState } from "@/lib/matches/day";
+import { cardStateFor, formatKickoffTimeET, type CardState } from "@/lib/matches/day";
 
 export type CalendarMatch = Pick<
   Match,
@@ -37,16 +37,6 @@ const STAGE_LABEL: Record<MatchStage, string> = {
   final: "Final",
 };
 
-const KICKOFF_TIME = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  hour: "numeric",
-  minute: "2-digit",
-});
-const UPDATED_TIME = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  hour: "numeric",
-  minute: "2-digit",
-});
 
 /** 2× the poll interval: beyond this a "live" score may be stale. */
 const STALE_MS = 6 * 60 * 1000;
@@ -60,7 +50,7 @@ function StatusBadge({ state, updatedAt }: { state: CardState; updatedAt: string
         <span className="flex items-center gap-1.5">
           <span className={`${base} ${stale ? "bg-muted text-muted-foreground" : "bg-neon/15 text-neon"}`}>● Live</span>
           <span className={`text-[10px] ${stale ? "text-destructive" : "text-muted-foreground"}`}>
-            updated {UPDATED_TIME.format(new Date(updatedAt))}
+            updated {formatKickoffTimeET(updatedAt)}
           </span>
         </span>
       );
@@ -114,7 +104,7 @@ function CenterScore({ state, kickoff }: { state: CardState; kickoff: string | n
     default:
       return (
         <span className="text-xs font-semibold text-muted-foreground">
-          {kickoff ? KICKOFF_TIME.format(new Date(kickoff)) : "TBD"}
+          {kickoff ? formatKickoffTimeET(kickoff) : "TBD"}
         </span>
       );
   }

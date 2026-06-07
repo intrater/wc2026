@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadTeamMap } from "@/lib/views/data";
 import { TIER_LABELS } from "@/lib/tiers/labels";
 import { getPhase } from "@/lib/state/phase";
-import { businessDayOf, todayBusinessDay, cardStateFor, isLive } from "@/lib/matches/day";
+import { businessDayOf, todayBusinessDay, cardStateFor, formatKickoffTimeET, isLive } from "@/lib/matches/day";
 import type { TeamInfo } from "@/lib/views/data";
 
 export const dynamic = "force-dynamic";
@@ -95,11 +95,6 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   );
 }
 
-const KICKOFF_TIME = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  hour: "numeric",
-  minute: "2-digit",
-});
 const NEXT_DAY = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/New_York",
   weekday: "short",
@@ -143,14 +138,14 @@ async function TodayAndNext({ teamIds, teamMap }: { teamIds: number[]; teamMap: 
     const opp = [m.home_team_id, m.away_team_id].find((id) => id != null && !mine.has(id!));
     const ourTeams = ours.map((id) => teamMap.get(id)).filter(Boolean) as TeamInfo[];
     const oppTeam = opp != null ? teamMap.get(opp) : undefined;
-    const state = cardStateFor({ ...m, ht_home_goals: m.ht_home_goals, ht_away_goals: m.ht_away_goals });
+    const state = cardStateFor(m);
     const score =
       state.kind === "final"
         ? `${state.home}–${state.away} FT`
         : state.kind === "live" || state.kind === "halftime"
           ? `LIVE ${state.home}–${state.away}`
           : m.kickoff
-            ? KICKOFF_TIME.format(new Date(m.kickoff))
+            ? formatKickoffTimeET(m.kickoff)
             : "TBD";
     const us = ourTeams.map((t) => `${t.flag} ${t.name}`).join(" & ");
     return ours.length === 2

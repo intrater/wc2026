@@ -1,24 +1,6 @@
 import Link from "next/link";
-
-const DAY_LABEL = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-});
-
-function labelFor(day: string): string {
-  // day is an ET calendar date; noon UTC is unambiguously that date in ET.
-  return DAY_LABEL.format(new Date(`${day}T12:00:00-04:00`));
-}
-
-function hrefFor(day: string | null, mine: boolean): string {
-  const q = new URLSearchParams();
-  if (day) q.set("date", day);
-  if (mine) q.set("mine", "1");
-  const qs = q.toString();
-  return qs ? `/matches?${qs}` : "/matches";
-}
+import { formatBusinessDayLabel } from "@/lib/matches/day";
+import { matchesHref } from "./href";
 
 /**
  * Prev/next day navigation (U5). Links `replace` so the back button doesn't
@@ -48,7 +30,7 @@ export function DayNav({
   return (
     <nav className="flex items-center justify-between gap-2" aria-label="Match day">
       {prev ? (
-        <Link replace href={hrefFor(prev, mine)} className={arrow} aria-label="Previous day">
+        <Link replace href={matchesHref({ date: prev, mine })} className={arrow} aria-label="Previous day">
           ‹
         </Link>
       ) : (
@@ -59,18 +41,18 @@ export function DayNav({
 
       <div className="text-center">
         <div className="font-display text-lg font-extrabold">
-          {labelFor(selected)}
+          {formatBusinessDayLabel(selected)}
           {isToday && <span className="ml-2 rounded bg-neon/15 px-1.5 py-0.5 align-middle text-xs font-bold text-neon">Today</span>}
         </div>
         {selected !== defaultDay && (
-          <Link replace href={hrefFor(null, mine)} className="text-xs font-semibold text-neon hover:underline">
+          <Link replace href={matchesHref({ date: null, mine })} className="text-xs font-semibold text-neon hover:underline">
             {defaultDay === today ? "Jump to today" : "Jump to next match day"}
           </Link>
         )}
       </div>
 
       {next ? (
-        <Link replace href={hrefFor(next, mine)} className={arrow} aria-label="Next day">
+        <Link replace href={matchesHref({ date: next, mine })} className={arrow} aria-label="Next day">
           ›
         </Link>
       ) : (

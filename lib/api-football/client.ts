@@ -61,11 +61,21 @@ export async function getStandings(): Promise<ApiStandingRow[]> {
   return rows;
 }
 
-const TERMINAL = new Set(["FT", "AET", "PEN", "AWD", "WO"]);
-const LIVE = new Set(["1H", "HT", "2H", "ET", "BT", "P"]);
-const NOT_OCCURRING = new Set(["PST", "CANC", "ABD"]);
-const PAUSED = new Set(["SUSP", "INT"]);
-const UPCOMING = new Set(["TBD", "NS"]);
+// Single source of truth for status buckets lives in lib/matches/day.ts —
+// duplicating it here is how live scores get mis-bucketed when the API adds a code.
+import {
+  LIVE_STATUSES,
+  TERMINAL_STATUSES,
+  NOT_OCCURRING_STATUSES,
+  PAUSED_STATUSES,
+  UPCOMING_STATUSES,
+} from "@/lib/matches/day";
+
+const TERMINAL = new Set<string>(TERMINAL_STATUSES);
+const LIVE = new Set<string>(LIVE_STATUSES);
+const NOT_OCCURRING = new Set<string>(NOT_OCCURRING_STATUSES);
+const PAUSED = new Set<string>(PAUSED_STATUSES);
+const UPCOMING = new Set<string>(UPCOMING_STATUSES);
 
 /**
  * Display-only live state for a fixture (U2). Never feeds scoring.

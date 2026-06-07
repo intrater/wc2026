@@ -73,6 +73,10 @@ export default async function MatchesPage({
   }
 
   // ---------- day selection ----------
+  // Fixtures without a kickoff datetime (TBD knockout slots before the schedule
+  // publishes) can't live on a day — surface them in a "Date TBD" section instead
+  // of silently vanishing (review finding).
+  const unplaced = rows.filter((m) => !m.kickoff);
   const days = groupByDay(rows);
   const dayKeys = days.map((d) => d.day);
   const today = todayBusinessDay();
@@ -136,6 +140,26 @@ export default async function MatchesPage({
             />
           ))}
         </div>
+      )}
+
+      {unplaced.length > 0 && !mineOnly && (
+        <section>
+          <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            Date TBD
+          </h2>
+          <div className="space-y-2">
+            {unplaced.map((m) => (
+              <MatchCard
+                key={m.fixture_id}
+                match={m}
+                teamMap={teamMap}
+                myTeamIds={myTeamIds}
+                viewerPoints={[]}
+                showStake={hasEntry}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

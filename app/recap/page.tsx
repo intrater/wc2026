@@ -1,14 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Recap, RecapStats } from "@/lib/db/types";
+import { formatBusinessDayLabel } from "@/lib/matches/day";
 
 export const dynamic = "force-dynamic";
-
-const DAY_LABEL = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-});
 
 /**
  * Daily recap feed (U8). Newest first; the most recent day is expanded, prior days
@@ -68,7 +62,7 @@ function RecapCard({
   expanded: boolean;
 }) {
   const stats = recap.stats;
-  const label = DAY_LABEL.format(new Date(`${recap.business_day}T12:00:00-04:00`));
+  const label = formatBusinessDayLabel(recap.business_day);
 
   return (
     <details

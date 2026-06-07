@@ -20,6 +20,11 @@ export interface RecapStageResult {
   narrative: "exists" | "generated" | "failed" | "skipped";
 }
 
+/** Yesterday's ET date relative to `now` (for the midnight-rollover catch-up). */
+function yesterdayBusinessDay(now: number): string {
+  return todayBusinessDay(now - 24 * 60 * 60 * 1000);
+}
+
 /**
  * Day-done (the recap may fire): today had ≥1 scheduled fixture AND every fixture on
  * today's ET business day is resolved (terminal or not-occurring). ALL of today's
@@ -33,24 +38,42 @@ export function isDayDone(
   return todaysMatches.every((m) => isResolved(m.status));
 }
 
+/**
+ * Evaluate yesterday AND today: a day whose last match ends after midnight ET (or
+ * whose recap creation failed near midnight) is caught up by the next poll instead
+ * of being skipped forever (review finding: midnight rollover).
+ */
 export async function maybeGenerateRecap(
   admin: SupabaseClient,
   now: number = Date.now(),
-): Promise<RecapStageResult> {
-  const day = todayBusinessDay(now);
-
-  // ---------- load today's fixtures + existing recap row ----------
-  const [{ data: allMatches, error: mErr }, { data: existing }] = await Promise.all([
-    admin
-      .from("matches")
-      .select(
-        "fixture_id, stage, group_label, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, decided_by",
-      ),
-    admin.from("recaps").select("business_day, narrative").eq("business_day", day).maybeSingle(),
-  ]);
+): Promise<RecapStageResult[]> {
+  const { data: allMatches, error: mErr } = await admin
+    .from("matches")
+    .select(
+      "fixture_id, stage, group_label, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, decided_by",
+    );
   if (mErr) throw new Error(`recap: ${mErr.message}`);
-
   const matches = (allMatches ?? []) as StatsMatchRow[];
+
+  const days = [yesterdayBusinessDay(now), todayBusinessDay(now)];
+  const results: RecapStageResult[] = [];
+  for (const day of days) {
+    results.push(await generateForDay(admin, day, matches));
+  }
+  return results;
+}
+
+async function generateForDay(
+  admin: SupabaseClient,
+  day: string,
+  matches: StatsMatchRow[],
+): Promise<RecapStageResult> {
+  const { data: existing } = await admin
+    .from("recaps")
+    .select("business_day, narrative")
+    .eq("business_day", day)
+    .maybeSingle();
+
   const todays = matches.filter((m) => m.kickoff && businessDayOf(m.kickoff) === day);
   const dayDone = isDayDone(todays);
 

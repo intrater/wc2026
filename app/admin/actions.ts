@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runIngest } from "@/lib/api-football/ingest";
 import { runRecompute } from "@/lib/scoring/persist";
+import { ensureDailySnapshot } from "@/lib/standings/snapshot";
+import { maybeGenerateRecap } from "@/lib/recap/generate";
 
 async function assertAdmin() {
   if (!(await isAdmin())) throw new Error("Not authorized");
@@ -92,7 +94,11 @@ export async function runIngestNow() {
   await assertAdmin();
   const admin = createAdminClient();
   try {
+    // Mirror the cron's stage order (snapshot → ingest → recap) so a manual sync
+    // during a cron outage still establishes the movement baseline and the recap.
+    await ensureDailySnapshot(admin).catch(() => undefined);
     const summary = await runIngest(admin);
+    await maybeGenerateRecap(admin).catch(() => undefined);
     revalidateAll();
     return { ok: true, summary };
   } catch (e) {
