@@ -46,30 +46,33 @@ export default async function HomePage() {
            page — no "How it works" noise. Editing drops to the bottom, pre-lock only. */
         <>
           <Leaderboard supabase={supabase} />
-          {/* One action row, equal-width buttons spanning the container. */}
-          <div className="flex gap-2">
-            {/* Edit picks is the primary action until kickoff locks it away. */}
-            {!phase.isLocked && hasSubmitted && (
-              <Link
-                href="/pick"
-                className="glow-neon flex flex-1 items-center justify-center rounded-2xl bg-neon px-1 py-4 text-base font-extrabold text-neon-foreground whitespace-nowrap transition-transform active:translate-y-px"
-              >
-                Edit picks
-              </Link>
-            )}
-            <SharePool compact />
-            {/* Only entrants who still owe see this; gone once marked paid in admin. */}
-            {owesEntryFee && (
-              <a
-                href="https://venmo.com/u/john-intrater"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-card px-1 py-4 text-base font-bold text-foreground whitespace-nowrap transition-colors hover:border-neon/50 hover:text-neon"
-              >
-                Pay via Venmo
-              </a>
-            )}
-          </div>
+          {/* One action row, equal-width buttons. Pre-lock: Edit picks (primary) +
+              Invite + Venmo-if-owing. Once the tournament is live, editing and
+              inviting are over — only an unpaid Venmo nudge remains. */}
+          {(!phase.isLocked || owesEntryFee) && (
+            <div className="flex gap-2">
+              {!phase.isLocked && hasSubmitted && (
+                <Link
+                  href="/pick"
+                  className="glow-neon flex flex-1 items-center justify-center rounded-2xl bg-neon px-1 py-4 text-base font-extrabold text-neon-foreground whitespace-nowrap transition-transform active:translate-y-px"
+                >
+                  Edit picks
+                </Link>
+              )}
+              {!phase.isLocked && <SharePool compact />}
+              {/* Only entrants who still owe see this; gone once marked paid in admin. */}
+              {owesEntryFee && (
+                <a
+                  href="https://venmo.com/u/john-intrater"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-card px-1 py-4 text-base font-bold text-foreground whitespace-nowrap transition-colors hover:border-neon/50 hover:text-neon"
+                >
+                  Pay via Venmo
+                </a>
+              )}
+            </div>
+          )}
         </>
       ) : (
         /* Pick mode: conversion-focused — rules + the one big CTA. */
