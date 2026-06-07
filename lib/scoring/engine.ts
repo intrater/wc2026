@@ -314,7 +314,9 @@ export function recompute(input: ScoringInput): ScoringResult {
  * Leaderboard ordering (Scoring Spec §5.6): total, then underdog (tiers 7-12) points,
  * then upset points. Remaining exact ties split the prize (resolved off-app).
  */
-export function compareForLeaderboard(a: ComputedScore, b: ComputedScore): number {
+export type LeaderboardSortable = Pick<ComputedScore, "total" | "underdogTotal" | "upsetTotal">;
+
+export function compareForLeaderboard(a: LeaderboardSortable, b: LeaderboardSortable): number {
   if (b.total !== a.total) return b.total - a.total;
   if (b.underdogTotal !== a.underdogTotal) return b.underdogTotal - a.underdogTotal;
   return b.upsetTotal - a.upsetTotal;

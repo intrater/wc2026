@@ -2,6 +2,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamMap } from "@/lib/views/data";
 import { TIER_LABELS } from "@/lib/tiers/labels";
+import { getPhase } from "@/lib/state/phase";
+import { businessDayOf, todayBusinessDay, cardStateFor, formatKickoffTimeET, isLive } from "@/lib/matches/day";
+import type { TeamInfo } from "@/lib/views/data";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +63,8 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
         {!entry.paid && <p className="text-xs font-medium text-destructive">unpaid</p>}
       </header>
 
+      <TodayAndNext teamIds={picks.map((p) => p.team_id)} teamMap={teamMap} />
+
       <div className="space-y-2">
         {picks.map((p) => {
           const team = teamMap.get(p.team_id);
@@ -86,6 +91,84 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
           );
         })}
       </div>
+    </div>
+  );
+}
+
+const NEXT_DAY = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  weekday: "short",
+});
+
+/**
+ * Which of this entry's teams play today, and the next upcoming fixture (U6) —
+ * the "know who to root against" line. Hidden pre-lock (the tournament hasn't
+ * started; an owner viewing their own roster pre-lock shouldn't see a stub).
+ */
+async function TodayAndNext({ teamIds, teamMap }: { teamIds: number[]; teamMap: Map<number, TeamInfo> }) {
+  const phase = await getPhase();
+  if (!phase.isLocked || teamIds.length === 0) return null;
+
+  const supabase = await createClient();
+  const idList = teamIds.join(",");
+  const { data: matches } = await supabase
+    .from("matches")
+    .select(
+      "fixture_id, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, decided_by",
+    )
+    .or(`home_team_id.in.(${idList}),away_team_id.in.(${idList})`)
+    .order("kickoff", { ascending: true });
+
+  const rows = matches ?? [];
+  const today = todayBusinessDay();
+  const mine = new Set(teamIds);
+
+  const todays = rows.filter((m) => m.kickoff && businessDayOf(m.kickoff) === today);
+  const next = rows.find(
+    (m) =>
+      m.kickoff &&
+      businessDayOf(m.kickoff) > today &&
+      m.home_team_id != null &&
+      m.away_team_id != null,
+  );
+  if (todays.length === 0 && !next) return null;
+
+  const describe = (m: (typeof rows)[number]) => {
+    const ours = [m.home_team_id, m.away_team_id].filter((id): id is number => id != null && mine.has(id));
+    const opp = [m.home_team_id, m.away_team_id].find((id) => id != null && !mine.has(id!));
+    const ourTeams = ours.map((id) => teamMap.get(id)).filter(Boolean) as TeamInfo[];
+    const oppTeam = opp != null ? teamMap.get(opp) : undefined;
+    const state = cardStateFor(m);
+    const score =
+      state.kind === "final"
+        ? `${state.home}–${state.away} FT`
+        : state.kind === "live" || state.kind === "halftime"
+          ? `LIVE ${state.home}–${state.away}`
+          : m.kickoff
+            ? formatKickoffTimeET(m.kickoff)
+            : "TBD";
+    const us = ourTeams.map((t) => `${t.flag} ${t.name}`).join(" & ");
+    return ours.length === 2
+      ? `${us} — ${score}`
+      : `${us} ${oppTeam ? `vs ${oppTeam.flag} ${oppTeam.name}` : ""} · ${score}`;
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-3 text-sm shadow-sm">
+      {todays.length > 0 && (
+        <div>
+          <span className={`font-bold ${todays.some((m) => isLive(m.status)) ? "text-neon" : "text-muted-foreground"}`}>
+            Today:
+          </span>{" "}
+          {todays.map((m) => describe(m)).join("  ·  ")}
+        </div>
+      )}
+      {next?.kickoff && (
+        <div className={todays.length > 0 ? "mt-1" : ""}>
+          <span className="font-bold text-muted-foreground">Next:</span> {describe(next)}{" "}
+          <span className="text-muted-foreground">({NEXT_DAY.format(new Date(next.kickoff))})</span>
+        </div>
+      )}
     </div>
   );
 }

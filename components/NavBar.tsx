@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
+import { getPhase } from "@/lib/state/phase";
 
 /**
- * Top nav. "Matches" and "My Picks" only appear once the viewer is signed in AND
- * has submitted an entry — before that, the landing-page CTA is the way in, so the
- * nav stays uncluttered for newcomers (#2).
+ * Top nav. Pre-lock, "Matches"/"My Picks" appear only for entrants (the landing-page
+ * CTA is the way in for newcomers). Once the tournament locks, Matches and Recap are
+ * visible to EVERYONE — the app is fully public in tracking mode (U8); only My Picks
+ * stays entry-gated.
  */
 export async function NavBar() {
-  const user = await getUser();
+  const [user, phase] = await Promise.all([getUser(), getPhase()]);
   let hasEntry = false;
   if (user) {
     const supabase = await createClient();
@@ -20,6 +22,8 @@ export async function NavBar() {
     hasEntry = !!data?.submitted_at;
   }
 
+  const showMatches = phase.isLocked || hasEntry;
+
   return (
     <nav className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-3xl items-center gap-5 px-4 py-3 text-sm font-semibold">
@@ -29,11 +33,14 @@ export async function NavBar() {
             WC<span className="text-neon">26</span>
           </span>
         </Link>
+        {showMatches && (
+          <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
+        )}
+        {phase.isLocked && (
+          <Link href="/recap" className="text-muted-foreground transition-colors hover:text-foreground">Recap</Link>
+        )}
         {hasEntry && (
-          <>
-            <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
-            <Link href="/pick" className="text-muted-foreground transition-colors hover:text-foreground">My Picks</Link>
-          </>
+          <Link href="/pick" className="text-muted-foreground transition-colors hover:text-foreground">My Picks</Link>
         )}
         <Link href="/how-it-works" className="ml-auto text-muted-foreground transition-colors hover:text-foreground">Scoring</Link>
         {process.env.NODE_ENV === "development" && (

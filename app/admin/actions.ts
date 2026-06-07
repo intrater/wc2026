@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/auth/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runIngest } from "@/lib/api-football/ingest";
 import { runRecompute } from "@/lib/scoring/persist";
+import { ensureDailySnapshot } from "@/lib/standings/snapshot";
+import { maybeGenerateRecap } from "@/lib/recap/generate";
 
 async function assertAdmin() {
   if (!(await isAdmin())) throw new Error("Not authorized");
@@ -67,6 +69,12 @@ export async function overrideResult(formData: FormData) {
       status: "FT",
       manual_override: true,
       needs_attention: false,
+      // Ingest skips overridden rows, so its clear-on-terminal never runs for them:
+      // clear live display state here or it would linger forever (U2).
+      live_home_goals: null,
+      live_away_goals: null,
+      ht_home_goals: null,
+      ht_away_goals: null,
       updated_at: new Date().toISOString(),
     })
     .eq("fixture_id", fixtureId);
@@ -86,7 +94,11 @@ export async function runIngestNow() {
   await assertAdmin();
   const admin = createAdminClient();
   try {
+    // Mirror the cron's stage order (snapshot → ingest → recap) so a manual sync
+    // during a cron outage still establishes the movement baseline and the recap.
+    await ensureDailySnapshot(admin).catch(() => undefined);
     const summary = await runIngest(admin);
+    await maybeGenerateRecap(admin).catch(() => undefined);
     revalidateAll();
     return { ok: true, summary };
   } catch (e) {

@@ -68,6 +68,11 @@ export interface Match {
   manual_override: boolean;
   needs_attention: boolean;
   updated_at: string;
+  // Live display state (0003): never read by the scoring engine.
+  live_home_goals: number | null;
+  live_away_goals: number | null;
+  ht_home_goals: number | null;
+  ht_away_goals: number | null;
 }
 
 export interface Score {
@@ -87,6 +92,53 @@ export interface ScoreLine {
   points: number;
   label: string;
   category: ScoreCategory;
+}
+
+/** Start-of-ET-day standings baseline (0003); basis for leaderboard movement. */
+export interface DailyStanding {
+  entry_id: string;
+  business_day: string; // YYYY-MM-DD (America/New_York)
+  total: number;
+  rank: number;
+  created_at: string;
+}
+
+/** End-of-day recap (0003). stats holds allowlisted fields only — it is public. */
+export interface Recap {
+  business_day: string; // YYYY-MM-DD (America/New_York)
+  stats: RecapStats;
+  narrative: string | null;
+  narrative_model: string | null;
+  email_log: { sent: string[]; failed: string[] } | null; // entry_ids, never emails (U9)
+  created_at: string;
+  emailed_at: string | null;
+}
+
+/** Deterministic day stats — the only data the recap narrative may reference. */
+export interface RecapStats {
+  dayNumber: number; // Nth match day since the opener (rest days don't advance it)
+  results: Array<{
+    fixtureId: number;
+    stage: MatchStage | null;
+    groupLabel: string | null;
+    home: { name: string; flag: string; goals: number } | null;
+    away: { name: string; flag: string; goals: number } | null;
+    decidedBy: MatchDecidedBy | null;
+    postponed?: boolean;
+  }>;
+  entries: Array<{
+    entryId: string;
+    displayName: string; // truncated to 40 chars; allowlist: never paid/user_id/email
+    total: number;
+    pointsToday: number | null;
+    rank: number;
+    rankDelta: number | null; // positive = climbed
+  }>;
+  topGainer: string | null; // display names
+  biggestFaller: string | null;
+  upsets: Array<{ teamName: string; label: string; points: number }>;
+  goalBonusStandouts: Array<{ teamName: string; goals: number }>;
+  topThree: string[];
 }
 
 /** Terminal match statuses that are eligible for scoring (Scoring Spec §5.5). */
