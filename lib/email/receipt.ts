@@ -1,6 +1,6 @@
-// Transactional pick-receipt email (UX5). Sends via SMTP (Gmail app password) when
+// Transactional pick-receipt email (UX5). Sends via SMTP (Resend, smtp.resend.com) when
 // configured; otherwise logs so local/dev still works. Magic-link emails are sent by
-// Supabase Auth (also configured to use the same SMTP).
+// Supabase Auth (also configured to use the same Resend SMTP).
 import nodemailer from "nodemailer";
 
 interface ReceiptPick {

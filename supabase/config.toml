@@ -230,19 +230,19 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Custom SMTP (Gmail) — REQUIRED in prod. Without this, Supabase falls back to its
+# Custom SMTP (Resend) — REQUIRED in prod. Without this, Supabase falls back to its
 # built-in email, which only delivers to team members (so pool players get nothing)
 # and is capped at a few emails/hour. This is configured in the dashboard; mirror it
-# here so `supabase config push` doesn't disable it.
+# here so `supabase config push` doesn't reset it (prod verified 2026-06-07).
 # ⚠️ Before pushing, set the password as a Supabase secret (NOT committed):
-#      supabase secrets set SMTP_PASS=<gmail app password>
+#      supabase secrets set SMTP_PASS=<resend api key>
 [auth.email.smtp]
 enabled = true
-host = "smtp.gmail.com"
+host = "smtp.resend.com"
 port = 465
-user = "john.intrater@gmail.com"
+user = "resend"
 pass = "env(SMTP_PASS)"
-admin_email = "john.intrater@gmail.com"
+admin_email = "pool@wc2026.johnintrater.com"
 sender_name = "World Cup 2026 Pool"
 
 # Sign-in email templates — MUST use the stateless {{ .TokenHash }} link, not the
