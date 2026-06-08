@@ -15,7 +15,6 @@ async function assertAdmin() {
 function revalidateAll() {
   revalidatePath("/admin");
   revalidatePath("/");
-  revalidatePath("/rosters");
 }
 
 export async function togglePaid(formData: FormData) {

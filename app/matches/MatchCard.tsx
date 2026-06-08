@@ -76,7 +76,9 @@ function StatusBadge({ state, updatedAt }: { state: CardState; updatedAt: string
   }
 }
 
-function CenterScore({ state, kickoff }: { state: CardState; kickoff: string | null }) {
+/** The center cell between the two teams: a "VS" disc before kickoff, the score once
+ * the match is live or done. Kickoff time lives in the card's top-left corner instead. */
+function CenterCell({ state }: { state: CardState }) {
   switch (state.kind) {
     case "live":
     case "halftime":
@@ -102,22 +104,15 @@ function CenterScore({ state, kickoff }: { state: CardState; kickoff: string | n
     case "abandoned":
       return <span className="text-xs text-muted-foreground">—</span>;
     default:
-      return (
-        <span className="text-xs font-semibold text-muted-foreground">
-          {kickoff ? formatKickoffTimeET(kickoff) : "TBD"}
-        </span>
-      );
+      return <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">vs</span>;
   }
 }
 
 function TeamSide({ team, mine, alignRight }: { team?: TeamInfo; mine: boolean; alignRight?: boolean }) {
   return (
-    <div className={`flex flex-1 items-center gap-2 ${alignRight ? "flex-row-reverse text-right" : ""}`}>
+    <div className={`flex min-w-0 flex-1 items-center gap-2 ${alignRight ? "flex-row-reverse text-right" : ""}`}>
       <span className="text-2xl">{team?.flag ?? "🏳️"}</span>
-      <span className={`font-semibold ${mine ? "text-neon" : ""}`}>
-        {team?.name ?? "TBD"}
-        {mine && " ⭐"}
-      </span>
+      <span className={`truncate font-semibold ${mine ? "text-neon" : ""}`}>{team?.name ?? "TBD"}</span>
     </div>
   );
 }
@@ -159,17 +154,24 @@ export function MatchCard({
 
   return (
     <div className={`rounded-xl border bg-card p-3 shadow-sm ${highlight ? "border-neon/40" : "border-border"}`}>
-      <div className="mb-1.5 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span className="font-semibold uppercase tracking-wide">{chip}</span>
-        <StatusBadge state={state} updatedAt={match.updated_at} />
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-sm font-bold tabular-nums">
+          {match.kickoff ? formatKickoffTimeET(match.kickoff) : "TBD"}
+        </span>
+        <div className="flex items-center gap-2">
+          <StatusBadge state={state} updatedAt={match.updated_at} />
+          {chip && (
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{chip}</span>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <TeamSide team={home} mine={!!home && myTeamIds.has(home.id)} />
-        <div className="px-2 text-center">
-          <CenterScore state={state} kickoff={match.kickoff} />
+        <div className="shrink-0 text-center">
+          <CenterCell state={state} />
           {(state.kind === "live" || state.kind === "paused") && match.ht_home_goals != null && (
-            <div className="text-[10px] text-muted-foreground">
+            <div className="mt-0.5 text-[10px] text-muted-foreground">
               HT {match.ht_home_goals}–{match.ht_away_goals}
             </div>
           )}
@@ -200,19 +202,15 @@ export function MatchCard({
               );
             })
           ) : (
-            <div>
+            <p className="truncate font-medium text-foreground">
               {mine.length === 2 ? (
-                <span className="font-semibold text-neon">⚡ Both your teams!</span>
+                "⚡ Both your teams play"
               ) : (
-                <span className="font-semibold text-neon">
-                  You have {mine[0].flag} {mine[0].name}
-                  {mine[0].tier ? ` (Tier ${mine[0].tier})` : ""}
-                </span>
+                <>You picked {mine[0].flag}</>
+
               )}
-              {mine.some((t) => t.goalBonus) && (
-                <span className="ml-2 text-neon/80">⚽ goals score you points</span>
-              )}
-            </div>
+              {mine.some((t) => t.goalBonus) && " / bonus for pts scored"}
+            </p>
           )}
         </div>
       )}

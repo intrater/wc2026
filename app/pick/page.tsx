@@ -22,6 +22,7 @@ export default async function PickPage() {
 
   const lockAt = settings?.lock_at ? new Date(settings.lock_at) : null;
   const locked = !!lockAt && lockAt.getTime() <= Date.now();
+  const submitted = !!entry?.submitted_at;
 
   if (locked) {
     return (
@@ -60,14 +61,14 @@ export default async function PickPage() {
 
   return (
     <div className="space-y-5">
-      <header className="pt-2 text-center">
-        <h1 className="text-4xl font-extrabold">
-          Make your <span className="text-neon text-glow">picks</span>
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Pick <strong className="text-foreground">one team from each of the 12 tiers</strong>.{" "}
-          <Link href="/how-it-works" className="font-semibold text-neon hover:underline">Scoring details</Link>
-        </p>
+      <header className="text-center">
+        <h1 className="font-display text-4xl font-extrabold">My Team</h1>
+        {!submitted && (
+          <p className="mt-2 text-muted-foreground">
+            Pick <strong className="text-foreground">one team from each of the 12 tiers</strong>.{" "}
+            <Link href="/how-it-works" className="font-semibold text-neon hover:underline">Scoring details</Link>
+          </p>
+        )}
         {lockAt && (
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-neon">
             <LockCountdown lockAt={lockAt.toISOString()} />
@@ -77,8 +78,7 @@ export default async function PickPage() {
       <TierPicker
         tiers={tiers}
         initialPicks={initialPicks}
-        initialSubmitted={!!entry?.submitted_at}
-        lockAt={lockAt ? lockAt.toISOString() : null}
+        initialSubmitted={submitted}
       />
     </div>
   );

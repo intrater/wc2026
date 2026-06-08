@@ -3,30 +3,68 @@ import { checkPoolAccess } from "@/lib/auth/poolAccess";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
-import { loadTeamMap } from "@/lib/views/data";
+import { loadTeamMap, type TeamInfo } from "@/lib/views/data";
 import { groupByDay, todayBusinessDay } from "@/lib/matches/day";
-import { DayNav } from "./DayNav";
-import { MyTeamsFilter } from "./MyTeamsFilter";
+import { DayMarker } from "./DayMarker";
+import { NowLine } from "./NowLine";
+import { ScrollToNow } from "./ScrollToNow";
 import { MatchCard, type CalendarMatch, type ViewerPoints } from "./MatchCard";
 
 export const dynamic = "force-dynamic";
 
+/** One day's worth of matches: the rail marker on the left, the card stack on the right.
+ * The "now" line is dropped in just before `nowBeforeId` when that match lives here. */
+function DayRow({
+  day,
+  matches,
+  today,
+  nowBeforeId,
+  teamMap,
+  myTeamIds,
+  pointsByMatch,
+  hasEntry,
+}: {
+  day: string;
+  matches: CalendarMatch[];
+  today: string;
+  nowBeforeId: number | null;
+  teamMap: Map<number, TeamInfo>;
+  myTeamIds: Set<number>;
+  pointsByMatch: Map<number, ViewerPoints[]>;
+  hasEntry: boolean;
+}) {
+  return (
+    <div className="flex gap-3">
+      <DayMarker day={day} today={today} />
+      <div className="min-w-0 flex-1 space-y-3 pb-2">
+        {matches.map((m) => (
+          <div key={m.fixture_id}>
+            {m.fixture_id === nowBeforeId && <NowLine />}
+            <MatchCard
+              match={m}
+              teamMap={teamMap}
+              myTeamIds={myTeamIds}
+              viewerPoints={pointsByMatch.get(m.fixture_id) ?? []}
+              showStake={hasEntry}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
- * The match calendar (U5): every game, grouped by ET day. Default = today (or the
- * next day with matches). `?date=YYYY-MM-DD` selects a day, `?mine=1` filters to the
- * viewer's picked teams; the two params always preserve each other (see DayNav).
+ * The match calendar (U5): every game in one continuous, Google-Calendar-style scroll.
+ * Days run top to bottom, each tagged by a left-rail marker; a "now" line marks the next
+ * kickoff and the view auto-scrolls there on load. `?mine=1` filters to the viewer's
+ * picked teams.
  */
-export default async function MatchesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ date?: string; mine?: string }>;
-}) {
+export default async function MatchesPage() {
   const access = await checkPoolAccess();
   if (access === "signin") redirect("/login");
   if (access === "no-entry") redirect("/not-entered");
 
-  const params = await searchParams;
   const supabase = await createClient();
   const teamMap = await loadTeamMap();
   const user = await getUser();
@@ -72,42 +110,40 @@ export default async function MatchesPage({
   if (rows.length === 0) {
     return (
       <div className="pt-10 text-center text-muted-foreground">
-        <h1 className="mb-2 text-3xl font-extrabold text-foreground">Matches</h1>
+        <h1 className="mb-2 font-display text-4xl font-extrabold text-foreground">Matches</h1>
         The schedule appears once fixtures sync. ⚽️
       </div>
     );
   }
 
-  // ---------- day selection ----------
+  const today = todayBusinessDay();
+
   // Fixtures without a kickoff datetime (TBD knockout slots before the schedule
   // publishes) can't live on a day — surface them in a "Date TBD" section instead
-  // of silently vanishing (review finding).
+  // of silently vanishing.
   const unplaced = rows.filter((m) => !m.kickoff);
   const days = groupByDay(rows);
-  const dayKeys = days.map((d) => d.day);
-  const today = todayBusinessDay();
-  const requested = /^\d{4}-\d{2}-\d{2}$/.test(params.date ?? "") ? params.date! : null;
 
-  const defaultDay =
-    dayKeys.find((d) => d === today) ?? dayKeys.find((d) => d > today) ?? dayKeys[dayKeys.length - 1];
-  const selectedDay = requested && dayKeys.includes(requested) ? requested : defaultDay;
-  const dayIndex = dayKeys.indexOf(selectedDay);
-  const dayMatches = days[dayIndex]?.matches ?? [];
-
-  // ---------- my-teams filter ----------
-  const mineOnly = params.mine === "1" && hasEntry;
-  const involvesMine = (m: CalendarMatch) =>
-    (m.home_team_id != null && myTeamIds.has(m.home_team_id)) ||
-    (m.away_team_id != null && myTeamIds.has(m.away_team_id));
-  const visible = mineOnly ? dayMatches.filter(involvesMine) : dayMatches;
+  // ---------- "now" anchor ----------
+  // The next match that hasn't kicked off yet; the now-line renders right before it and
+  // the view auto-scrolls there. Matches are already chronological, so the first future
+  // kickoff across all days is the boundary (live + finished matches sit above it).
+  const nowMs = Date.now();
+  let nowBeforeId: number | null = null;
+  for (const d of days) {
+    const next = d.matches.find((m) => m.kickoff && new Date(m.kickoff).getTime() > nowMs);
+    if (next) {
+      nowBeforeId = next.fixture_id;
+      break;
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <header className="pt-2 text-center">
-        <h1 className="text-3xl font-extrabold">Matches</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Live scores update every few minutes. Tap through the days to see the whole tournament.
-        </p>
+    <div className="space-y-3">
+      <ScrollToNow />
+
+      <header className="text-center">
+        <h1 className="font-display text-4xl font-extrabold">Matches</h1>
       </header>
 
       {!user && (
@@ -119,41 +155,34 @@ export default async function MatchesPage({
         </p>
       )}
 
-      <DayNav
-        days={dayKeys}
-        selected={selectedDay}
-        today={today}
-        defaultDay={defaultDay}
-        mine={mineOnly}
-      />
-
-      {hasEntry && <MyTeamsFilter date={requested} active={mineOnly} />}
-
-      {visible.length === 0 ? (
-        <p className="py-10 text-center text-muted-foreground">
-          {mineOnly ? "None of your teams play this day." : "No matches this day."}
-        </p>
+      {days.length === 0 ? (
+        <p className="py-10 text-center text-muted-foreground">No matches scheduled yet.</p>
       ) : (
-        <div className="space-y-2">
-          {visible.map((m) => (
-            <MatchCard
-              key={m.fixture_id}
-              match={m}
+        <div className="space-y-5">
+          {days.map((d) => (
+            <DayRow
+              key={d.day}
+              day={d.day}
+              matches={d.matches}
+              today={today}
+              nowBeforeId={nowBeforeId}
               teamMap={teamMap}
               myTeamIds={myTeamIds}
-              viewerPoints={pointsByMatch.get(m.fixture_id) ?? []}
-              showStake={hasEntry}
+              pointsByMatch={pointsByMatch}
+              hasEntry={hasEntry}
             />
           ))}
         </div>
       )}
 
-      {unplaced.length > 0 && !mineOnly && (
-        <section>
+      <div id="schedule-end" />
+
+      {unplaced.length > 0 && (
+        <section className="pt-2">
           <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
             Date TBD
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {unplaced.map((m) => (
               <MatchCard
                 key={m.fixture_id}

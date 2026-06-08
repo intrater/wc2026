@@ -193,7 +193,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Leaderboard</h2>
-        <Link href="/rosters" className="text-sm font-semibold text-neon hover:underline">All rosters</Link>
+        <Link href="/how-it-works" className="text-sm font-semibold text-neon hover:underline">Point system</Link>
       </div>
       <ol>
         {ranked.map((r) => {

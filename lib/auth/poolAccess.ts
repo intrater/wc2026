@@ -1,6 +1,6 @@
 // Post-lock pool access (user decision 2026-06-07): once the tournament is live,
 // pool pages are for entrants (submitted entry) and the admin only. Pre-lock,
-// everything stays public — the homepage/rosters are the signup funnel.
+// everything stays public — the homepage is the signup funnel.
 // RLS (migration 0004) enforces the same rule at the data layer; this helper is
 // the page-level mirror so outsiders get a clear destination instead of empty data.
 import { createClient } from "@/lib/supabase/server";

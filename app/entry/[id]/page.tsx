@@ -58,8 +58,8 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-5">
-      <header className="pt-2 text-center">
-        <h1 className="text-3xl font-extrabold">{entry.display_name}</h1>
+      <header className="text-center">
+        <h1 className="font-display text-4xl font-extrabold">{entry.display_name}</h1>
         {score && (
           <p className="text-muted-foreground">
             <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts

@@ -46,10 +46,8 @@ function Note({ children }: { children: React.ReactNode }) {
 export default function ScoringPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      <header className="pt-2 text-center">
-        <h1 className="text-4xl font-extrabold">
-          Scoring <span className="text-neon text-glow">details</span>
-        </h1>
+      <header className="text-center">
+        <h1 className="font-display text-4xl font-extrabold">Point system</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Every way to put points on the board. Scoring is <strong className="text-foreground">per team</strong> — each of your
           12 teams earns on its own.

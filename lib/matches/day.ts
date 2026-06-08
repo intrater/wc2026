@@ -71,6 +71,20 @@ export function formatBusinessDayLabel(day: string): string {
   return DAY_LABEL.format(new Date(`${day}T12:00:00-04:00`));
 }
 
+const WEEKDAY_SHORT = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" });
+const DAY_NUM = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", day: "numeric" });
+const MONTH_SHORT = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", month: "short" });
+
+/** Calendar-rail parts for an ET business day: e.g. { weekday: "MON", dayNum: "16", month: "JUN" }. */
+export function formatDayParts(day: string): { weekday: string; dayNum: string; month: string } {
+  const d = new Date(`${day}T12:00:00-04:00`); // noon anchor avoids DST edges
+  return {
+    weekday: WEEKDAY_SHORT.format(d).toUpperCase(),
+    dayNum: DAY_NUM.format(d),
+    month: MONTH_SHORT.format(d).toUpperCase(),
+  };
+}
+
 /** ET clock time for a kickoff timestamp, e.g. "3:00 PM". */
 export function formatKickoffTimeET(kickoff: string | Date): string {
   return KICKOFF_TIME.format(typeof kickoff === "string" ? new Date(kickoff) : kickoff);

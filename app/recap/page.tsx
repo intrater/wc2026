@@ -26,8 +26,8 @@ export default async function RecapPage() {
 
   return (
     <div className="space-y-5">
-      <header className="pt-2 text-center">
-        <h1 className="text-3xl font-extrabold">
+      <header className="text-center">
+        <h1 className="font-display text-4xl font-extrabold">
           Daily <span className="text-neon text-glow">Recap</span>
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">

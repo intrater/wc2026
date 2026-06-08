@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { savePick, submitEntry } from "./actions";
-import { LockCountdown } from "@/components/LockCountdown";
 
 export interface PickerTeam {
   id: number;
@@ -21,12 +20,10 @@ export function TierPicker({
   tiers,
   initialPicks,
   initialSubmitted,
-  lockAt,
 }: {
   tiers: PickerTier[];
   initialPicks: Record<number, number>;
   initialSubmitted: boolean;
-  lockAt: string | null;
 }) {
   const [picks, setPicks] = useState<Record<number, number>>(initialPicks);
   const [submitted, setSubmitted] = useState(initialSubmitted);
@@ -71,8 +68,8 @@ export function TierPicker({
   // ---------- READ-ONLY VIEW (entry submitted, not editing) ----------
   if (submitted && !editing) {
     return (
-      <div className="space-y-5 pb-28">
-        <CompletedCard lockAt={lockAt} onEdit={() => setEditing(true)} />
+      <div className="space-y-5">
+        <CompletedCard onEdit={() => setEditing(true)} />
         {tiers.map((tier) => {
           const team = teamById(tier, picks[tier.tierNo]);
           return (
@@ -95,8 +92,6 @@ export function TierPicker({
             </section>
           );
         })}
-        {/* Bottom completion state — visible without scrolling back up (#5) */}
-        <CompletedCard lockAt={lockAt} onEdit={() => setEditing(true)} />
       </div>
     );
   }
@@ -181,22 +176,15 @@ export function TierPicker({
   );
 }
 
-function CompletedCard({ lockAt, onEdit }: { lockAt: string | null; onEdit: () => void }) {
+function CompletedCard({ onEdit }: { onEdit: () => void }) {
   return (
-    <div className="rounded-2xl border border-neon/40 bg-neon/10 p-5 text-center">
-      <div className="text-3xl">✅</div>
-      <p className="mt-1 text-lg font-extrabold text-neon">Your entry is in!</p>
-      <p className="text-sm text-muted-foreground">You can edit your picks until they lock. We emailed you a receipt.</p>
-      {lockAt && (
-        <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm font-semibold text-neon">
-          <LockCountdown lockAt={lockAt} />
-        </p>
-      )}
+    <div className="flex items-center justify-between rounded-xl border border-neon/40 bg-neon/10 px-4 py-3">
+      <span className="font-semibold text-neon">Your entry is in</span>
       <button
         onClick={onEdit}
-        className="mt-3 block w-full rounded-xl border border-border bg-card px-5 py-2.5 font-bold text-foreground transition-colors hover:border-neon/50 hover:text-neon"
+        className="text-sm font-semibold text-foreground underline-offset-2 hover:text-neon hover:underline"
       >
-        ✏️ Edit picks
+        Edit picks
       </button>
     </div>
   );
