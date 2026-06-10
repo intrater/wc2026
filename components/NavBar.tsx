@@ -4,9 +4,10 @@ import { getUser } from "@/lib/auth/server";
 import { getPhase } from "@/lib/state/phase";
 
 /**
- * Top nav. Pre-lock, "Matches"/"My Picks" appear only for entrants (the landing-page
- * CTA is the way in for newcomers). Post-lock privacy (0004) keeps every pool link —
- * Matches, Digest, My Team — gated on having a submitted entry.
+ * Top nav. Pre-lock, "Matches"/"Digest"/"My Picks" appear only for entrants (the
+ * landing-page CTA is the way in for newcomers). Digest shows pre-lock too so
+ * entrants can find the email sign-up toggle before the first digest sends.
+ * Post-lock privacy (0004) keeps every pool link gated on a submitted entry.
  */
 export async function NavBar() {
   const [user, phase] = await Promise.all([getUser(), getPhase()]);
@@ -41,7 +42,7 @@ export async function NavBar() {
           {showMatches && (
             <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
           )}
-          {phase.isLocked && hasEntry && (
+          {hasEntry && (
             <Link href="/digest" className="text-muted-foreground transition-colors hover:text-foreground">Digest</Link>
           )}
           {hasEntry && (

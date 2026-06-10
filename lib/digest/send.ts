@@ -109,7 +109,6 @@ export async function maybeSendDigest(
         dayLabel: formatBusinessDayLabel(day),
         todayLabel: formatBusinessDayLabel(today),
         docket,
-        siteUrl,
         unsubscribeUrl: unsubscribeUrl(siteUrl, r.userId, secret),
       });
       const result = await sendEmail(r.email, subject, text);

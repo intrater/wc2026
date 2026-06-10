@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { checkPoolAccess } from "@/lib/auth/poolAccess";
 import { getUserAndProfile } from "@/lib/auth/server";
+import { getPhase } from "@/lib/state/phase";
 import { redirect } from "next/navigation";
 import type { Recap, RecapStats } from "@/lib/db/types";
 import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
@@ -24,6 +25,7 @@ export default async function DigestPage() {
 
   const supabase = await createClient();
   const today = todayBusinessDay();
+  const phase = await getPhase();
   const [{ data }, { data: matchRows }, teamMap, ctx] = await Promise.all([
     supabase
       .from("recaps")
@@ -53,9 +55,7 @@ export default async function DigestPage() {
         </p>
       </header>
 
-      <TodayCard docket={docket} today={today} />
-
-      {ctx?.profile && <DigestToggle initial={ctx.profile.digest_opt_in} />}
+      <TodayCard docket={docket} today={today} preTournament={!phase.isLocked} />
 
       {recaps.length === 0 ? (
         <p className="py-10 text-center text-muted-foreground">
@@ -68,19 +68,33 @@ export default async function DigestPage() {
           ))}
         </div>
       )}
+
+      {ctx?.profile && <DigestToggle initial={ctx.profile.digest_opt_in} />}
     </div>
   );
 }
 
 /** Today's slate — always live-computed, never stored with a day's digest. */
-function TodayCard({ docket, today }: { docket: DocketItem[]; today: string }) {
+function TodayCard({
+  docket,
+  today,
+  preTournament,
+}: {
+  docket: DocketItem[];
+  today: string;
+  preTournament: boolean;
+}) {
   return (
     <section className="rounded-2xl border border-border bg-card px-4 py-3 shadow-xl">
       <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-        Today — {formatBusinessDayLabel(today)}
+        Today · {formatBusinessDayLabel(today)}
       </h2>
       {docket.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">No matches today — rest day. 😴</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {preTournament
+            ? "No games yet. Check back once the tournament kicks off. ⚽️"
+            : "No matches today. Rest day. 😴"}
+        </p>
       ) : (
         <ul className="mt-2 space-y-1 text-sm">
           {docket.map((m) => (
@@ -136,7 +150,7 @@ function DigestCard({
           <p className="whitespace-pre-line text-sm leading-relaxed">{recap.narrative}</p>
         ) : (
           <p className="text-sm italic text-muted-foreground">
-            The robot pundit is speechless tonight — here&apos;s the box score:
+            The robot pundit is speechless tonight. Here&apos;s the box score:
           </p>
         )}
 

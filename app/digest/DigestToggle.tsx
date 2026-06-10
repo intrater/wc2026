@@ -29,16 +29,18 @@ export function DigestToggle({ initial }: { initial: boolean }) {
     <section className="rounded-2xl border border-border bg-card px-4 py-3 shadow-xl">
       <div className="flex items-center justify-between gap-3">
         <span>
-          <span className="text-sm font-semibold">Email me the digest every morning</span>
+          <span className="text-sm font-semibold">
+            Want to get these delivered to your inbox?
+          </span>
           <span className="block text-xs text-muted-foreground">
-            Lands around 7am ET on match days. Unsubscribe anytime.
+            Sign up for daily digests. They land around 7am ET on match days.
           </span>
         </span>
         <button
           type="button"
           role="switch"
           aria-checked={on}
-          aria-label="Email me the digest every morning"
+          aria-label="Sign up for daily digests"
           onClick={toggle}
           disabled={pending}
           className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${

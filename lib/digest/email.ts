@@ -35,7 +35,7 @@ export function ordinal(n: number): string {
 function resultLine(r: RecapStats["results"][number]): string {
   const home = r.home ? `${r.home.flag} ${r.home.name}` : "TBD";
   const away = r.away ? `${r.away.name} ${r.away.flag}` : "TBD";
-  if (r.postponed) return `${home} vs ${away} — postponed`;
+  if (r.postponed) return `${home} vs ${away} (postponed)`;
   const suffix = r.decidedBy === "penalties" ? " (pens)" : r.decidedBy === "extra_time" ? " (aet)" : "";
   return `${home} ${r.home?.goals ?? 0}–${r.away?.goals ?? 0} ${away}${suffix}`;
 }
@@ -53,18 +53,17 @@ export interface DigestTextInput {
   dayLabel: string; // formatBusinessDayLabel(recapped day), e.g. "Friday, June 12"
   todayLabel: string; // formatBusinessDayLabel(today)
   docket: DocketItem[];
-  siteUrl: string;
   unsubscribeUrl: string; // per-recipient
 }
 
 export function buildDigestText(input: DigestTextInput): string {
-  const { stats, narrative, dayLabel, todayLabel, docket, siteUrl, unsubscribeUrl } = input;
+  const { stats, narrative, dayLabel, todayLabel, docket, unsubscribeUrl } = input;
   const sections: string[] = [];
 
-  sections.push(`Day ${stats.dayNumber} digest — ${dayLabel}`);
+  sections.push(`Day ${stats.dayNumber} digest\n${dayLabel}`);
 
   sections.push(
-    narrative ?? "The robot pundit was speechless last night — here's the box score.",
+    narrative ?? "The robot pundit was speechless last night. Here's the box score.",
   );
 
   if (stats.results.length > 0) {
@@ -79,7 +78,7 @@ export function buildDigestText(input: DigestTextInput): string {
   }
 
   if (stats.upsets.length > 0) {
-    sections.push(["UPSETS", ...stats.upsets.map((u) => `${u.teamName} — ${u.label}`)].join("\n"));
+    sections.push(["UPSETS", ...stats.upsets.map((u) => `${u.teamName}: ${u.label}`)].join("\n"));
   }
 
   if (stats.topThree.length > 0) {
@@ -90,14 +89,12 @@ export function buildDigestText(input: DigestTextInput): string {
 
   sections.push(
     docket.length > 0
-      ? [`TODAY'S DOCKET — ${todayLabel}`, ...docketTextLines(docket)].join("\n")
-      : `TODAY'S DOCKET — ${todayLabel}\nNo matches today — rest day. ⚽️`,
+      ? [`TODAY'S DOCKET: ${todayLabel}`, ...docketTextLines(docket)].join("\n")
+      : `TODAY'S DOCKET: ${todayLabel}\nNo matches today. Rest day. ⚽️`,
   );
 
-  sections.push(`Full digest: ${siteUrl.replace(/\/$/, "")}/digest`);
-
   sections.push(
-    `—\nYou get this because you opted in on the Digest page.\nUnsubscribe: ${unsubscribeUrl}`,
+    `You get this because you signed up for daily digests.\nUnsubscribe: ${unsubscribeUrl}`,
   );
 
   return sections.join("\n\n");

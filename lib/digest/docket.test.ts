@@ -108,8 +108,8 @@ describe("docketTextLines", () => {
         DAY,
       ),
     );
-    expect(lines[0]).toBe("12:00 PM ET — 🇺🇸 USA vs Wales 🏴 (Group D)");
-    expect(lines[1]).toBe("4:00 PM ET — TBD vs TBD (Round of 32)");
-    expect(lines[2]).toBe("6:00 PM ET — 🇦🇷 Argentina vs Wales 🏴 (Group D) (LIVE 2–1)");
+    expect(lines[0]).toBe("12:00 PM ET: 🇺🇸 USA vs Wales 🏴 (Group D)");
+    expect(lines[1]).toBe("4:00 PM ET: TBD vs TBD (Round of 32)");
+    expect(lines[2]).toBe("6:00 PM ET: 🇦🇷 Argentina vs Wales 🏴 (Group D) (LIVE 2–1)");
   });
 });

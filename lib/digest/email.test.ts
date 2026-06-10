@@ -46,7 +46,6 @@ function textInput(over: Partial<Parameters<typeof buildDigestText>[0]> = {}) {
     dayLabel: "Friday, June 12",
     todayLabel: "Saturday, June 13",
     docket: [docketItem],
-    siteUrl: "https://wc2026.example.com",
     unsubscribeUrl: "https://wc2026.example.com/unsubscribe?uid=u&sig=s",
     ...over,
   });
@@ -77,16 +76,17 @@ describe("hookFor / digestSubject", () => {
 describe("buildDigestText", () => {
   it("includes narrative, results, movers with rank story, top three, docket, links", () => {
     const text = textInput();
-    expect(text).toContain("Day 3 digest — Friday, June 12");
+    expect(text).toContain("Day 3 digest\nFriday, June 12");
     expect(text).toContain("What a day in the pool.");
     expect(text).toContain("🇲🇽 Mexico 2–0 South Africa 🇿🇦");
     expect(text).toContain("Alice +12 (5th → 1st)"); // prevRank = rank + rankDelta
     expect(text).toContain("Bob +2"); // rankDelta 0 → no parens
     expect(text).not.toContain("Bob +2 ("); // explicitly no rank story
     expect(text).toContain("1. Alice  ·  2. Bob  ·  3. Carol");
-    expect(text).toContain("TODAY'S DOCKET — Saturday, June 13");
-    expect(text).toContain("12:00 PM ET — 🇺🇸 USA vs Wales 🏴 (Group D)");
-    expect(text).toContain("Full digest: https://wc2026.example.com/digest");
+    expect(text).toContain("TODAY'S DOCKET: Saturday, June 13");
+    expect(text).toContain("12:00 PM ET: 🇺🇸 USA vs Wales 🏴 (Group D)");
+    expect(text).not.toContain("Full digest"); // the email IS the full digest
+    expect(text).toContain("You get this because you signed up for daily digests.");
     expect(text).toContain("Unsubscribe: https://wc2026.example.com/unsubscribe?uid=u&sig=s");
   });
 
@@ -96,9 +96,13 @@ describe("buildDigestText", () => {
     expect(text).toContain("THE NUMBERS");
   });
 
+  it("contains no em dashes in the deterministic sections", () => {
+    expect(textInput({ narrative: null })).not.toContain("—");
+  });
+
   it("renders the rest-day docket", () => {
     const text = textInput({ docket: [] });
-    expect(text).toContain("No matches today — rest day.");
+    expect(text).toContain("No matches today. Rest day.");
   });
 
   it("marks penalties and postponed results", () => {
@@ -126,13 +130,13 @@ describe("buildDigestText", () => {
       }),
     });
     expect(text).toContain("🇧🇷 Brazil 1–1 Morocco 🇲🇦 (pens)");
-    expect(text).toContain("🇺🇸 USA vs Wales 🏴 — postponed");
+    expect(text).toContain("🇺🇸 USA vs Wales 🏴 (postponed)");
   });
 
   it("lists upsets by label (points already embedded)", () => {
     const text = textInput({
       stats: stats({ upsets: [{ teamName: "Morocco", label: "Upset win (+4)", points: 4 }] }),
     });
-    expect(text).toContain("Morocco — Upset win (+4)");
+    expect(text).toContain("Morocco: Upset win (+4)");
   });
 });

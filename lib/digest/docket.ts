@@ -63,6 +63,6 @@ export function docketTextLines(items: DocketItem[]): string[] {
     const home = i.home ? `${i.home.flag} ${i.home.name}` : "TBD";
     const away = i.away ? `${i.away.name} ${i.away.flag}` : "TBD";
     const live = i.live ? ` (LIVE ${i.live.home}–${i.live.away})` : "";
-    return `${i.kickoffET} ET — ${home} vs ${away} (${i.contextLabel})${live}`;
+    return `${i.kickoffET} ET: ${home} vs ${away} (${i.contextLabel})${live}`;
   });
 }
