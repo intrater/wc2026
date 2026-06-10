@@ -23,7 +23,7 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-      <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[26px] border border-white/10 bg-background/60 px-2 py-1.5 shadow-2xl backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[26px] border border-white/15 bg-background/35 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
         {items.map((item) => {
           const active = isActive(item.active);
           return (
