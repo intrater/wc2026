@@ -20,7 +20,7 @@ export default function AppleIcon() {
           background: "linear-gradient(150deg, #38328c 0%, #221e57 100%)",
         }}
       >
-        <div style={{ fontSize: 92, display: "flex" }}>⚽</div>
+        <div style={{ fontSize: 92, display: "flex" }}>🇺🇸</div>
         <div
           style={{
             marginTop: 4,

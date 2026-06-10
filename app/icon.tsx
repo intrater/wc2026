@@ -18,7 +18,7 @@ export default function Icon() {
           borderRadius: 12,
         }}
       >
-        <div style={{ fontSize: 44, display: "flex" }}>⚽</div>
+        <div style={{ fontSize: 44, display: "flex" }}>🇺🇸</div>
       </div>
     ),
     { ...size, emoji: "twemoji" },
