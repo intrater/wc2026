@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
-import { PullToRefresh } from "@/components/PullToRefresh";
 import { Geist, Tourney } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +26,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("dark font-sans", geist.variable, tourney.variable)}>
       <body className="min-h-screen antialiased">
-        <PullToRefresh />
         {/* Colophon button — tablet/desktop only; a quiet </> circle that
             expands to its label on hover. Phones keep a clean viewport. */}
         <Link
