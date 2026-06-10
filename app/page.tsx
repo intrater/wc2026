@@ -40,7 +40,17 @@ export default async function HomePage() {
       <div className="text-center">
         <PageTitle
           sub={
-            <span className="text-xs font-bold uppercase tracking-[0.35em]">World Cup 2026</span>
+            <span className="text-xs font-bold uppercase tracking-[0.35em]">
+              World Cup 2026 /{" "}
+              <Link
+                href="/how-its-built"
+                aria-label="How it's built"
+                title="How it's built"
+                className="text-sm transition-transform hover:scale-110 active:scale-95"
+              >
+                🤔
+              </Link>
+            </span>
           }
         >
           The <TitleAccent>Pool</TitleAccent>
