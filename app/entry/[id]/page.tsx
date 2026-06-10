@@ -7,6 +7,7 @@ import { TIER_LABELS } from "@/lib/tiers/labels";
 import { getPhase } from "@/lib/state/phase";
 import { businessDayOf, todayBusinessDay, cardStateFor, formatKickoffTimeET, isLive } from "@/lib/matches/day";
 import type { TeamInfo } from "@/lib/views/data";
+import { PageTitle } from "@/components/PageTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   if (!picks || picks.length === 0) {
     return (
       <div className="space-y-3 pt-6 text-center">
-        <h1 className="text-2xl font-extrabold">{entry.display_name}</h1>
+        <PageTitle>{entry.display_name}</PageTitle>
         <div className="text-4xl">🔒</div>
         <p className="text-muted-foreground">This roster is hidden until the tournament kicks off.</p>
         <Link href="/" className="text-sm font-semibold text-neon hover:underline">Back to leaderboard</Link>
@@ -58,14 +59,14 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">{entry.display_name}</h1>
+      <div className="text-center">
+        <PageTitle>{entry.display_name}</PageTitle>
         {score && (
-          <p className="text-muted-foreground">
+          <p className="mt-2 text-muted-foreground">
             <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts
           </p>
         )}
-      </header>
+      </div>
 
       <TodayAndNext teamIds={picks.map((p) => p.team_id)} teamMap={teamMap} />
 

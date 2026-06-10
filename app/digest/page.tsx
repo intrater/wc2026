@@ -8,6 +8,7 @@ import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
 import { buildDocket, type DocketItem, type DocketMatchRow } from "@/lib/digest/docket";
 import { hookFor } from "@/lib/digest/email";
 import { loadTeamMap } from "@/lib/views/data";
+import { PageTitle, TitleAccent } from "@/components/PageTitle";
 import { DigestToggle } from "./DigestToggle";
 
 export const dynamic = "force-dynamic";
@@ -46,14 +47,9 @@ export default async function DigestPage() {
 
   return (
     <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">
-          Morning <span className="text-neon text-glow">Digest</span>
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          What happened, who moved, and what&apos;s on today&apos;s docket.
-        </p>
-      </header>
+      <PageTitle sub={<>What happened, who moved, and what&apos;s on today&apos;s docket.</>}>
+        Morning <TitleAccent>Digest</TitleAccent>
+      </PageTitle>
 
       {ctx?.profile && <DigestToggle initial={ctx.profile.digest_opt_in} />}
 

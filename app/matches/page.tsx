@@ -9,6 +9,7 @@ import { DayMarker } from "./DayMarker";
 import { NowLine } from "./NowLine";
 import { ScrollToNow } from "./ScrollToNow";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { PageTitle, TitleAccent } from "@/components/PageTitle";
 import { MatchCard, type CalendarMatch, type ViewerPoints } from "./MatchCard";
 
 export const dynamic = "force-dynamic";
@@ -110,9 +111,11 @@ export default async function MatchesPage() {
   const rows: CalendarMatch[] = matches ?? [];
   if (rows.length === 0) {
     return (
-      <div className="pt-10 text-center text-muted-foreground">
-        <h1 className="mb-2 font-display text-4xl font-extrabold text-foreground">Matches</h1>
-        The schedule appears once fixtures sync. ⚽️
+      <div className="space-y-3 pt-8 text-center text-muted-foreground">
+        <PageTitle>
+          <TitleAccent>Matches</TitleAccent>
+        </PageTitle>
+        <p>The schedule appears once fixtures sync. ⚽️</p>
       </div>
     );
   }
@@ -151,9 +154,9 @@ export default async function MatchesPage() {
       {/* Live scores tick over without a manual reload (60s, paused when hidden). */}
       <AutoRefresh />
 
-      <header className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">Matches</h1>
-      </header>
+      <PageTitle>
+        <TitleAccent>Matches</TitleAccent>
+      </PageTitle>
 
       {!user && (
         <p className="text-center text-sm text-muted-foreground">

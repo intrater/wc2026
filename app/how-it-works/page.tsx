@@ -6,6 +6,7 @@ import {
   UPSET_WIN_PER_TIER,
   UPSET_DRAW_PER_TIER,
 } from "@/lib/scoring/constants";
+import { PageTitle, TitleAccent } from "@/components/PageTitle";
 
 export const metadata = { title: "Scoring · World Cup 2026 Pool" };
 
@@ -46,13 +47,17 @@ function Note({ children }: { children: React.ReactNode }) {
 export default function ScoringPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      <header className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">Point system</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Every way to put points on the board. Scoring is <strong className="text-foreground">per team</strong> — each of your
-          12 teams earns on its own.
-        </p>
-      </header>
+      <PageTitle
+        sub={
+          <>
+            Every way to put points on the board. Scoring is{" "}
+            <strong className="text-foreground">per team</strong> — each of your 12 teams earns
+            on its own.
+          </>
+        }
+      >
+        Point <TitleAccent>System</TitleAccent>
+      </PageTitle>
 
       <Card title="Group stage">
         <Row label="Win a match" v={GROUP_POINTS.win} />

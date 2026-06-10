@@ -5,6 +5,7 @@ import { getUser } from "@/lib/auth/server";
 import { TIER_LABELS, GOAL_BONUS_MIN_TIER } from "@/lib/tiers/labels";
 import { TierPicker, type PickerTier } from "./TierPicker";
 import { LockCountdown } from "@/components/LockCountdown";
+import { PageTitle, TitleAccent } from "@/components/PageTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -61,8 +62,10 @@ export default async function PickPage() {
 
   return (
     <div className="space-y-5">
-      <header className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">My Team</h1>
+      <div className="text-center">
+        <PageTitle>
+          My <TitleAccent>Team</TitleAccent>
+        </PageTitle>
         {!submitted && (
           <p className="mt-2 text-muted-foreground">
             Pick <strong className="text-foreground">one team from each of the 12 tiers</strong>.{" "}
@@ -74,7 +77,7 @@ export default async function PickPage() {
             <LockCountdown lockAt={lockAt.toISOString()} />
           </p>
         )}
-      </header>
+      </div>
       <TierPicker
         tiers={tiers}
         initialPicks={initialPicks}

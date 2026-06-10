@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { computePayouts, formatUsd } from "@/lib/payouts/calc";
+import { PageTitle, TitleAccent } from "@/components/PageTitle";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Payouts · World Cup 2026 Pool" };
@@ -24,12 +25,16 @@ export default async function PayoutsPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      <header className="text-center">
-        <h1 className="font-display text-4xl font-extrabold">Payouts</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Four prizes out of one pot. It grows <strong className="text-foreground">$100 per entrant</strong>.
-        </p>
-      </header>
+      <PageTitle
+        sub={
+          <>
+            Four prizes out of one pot. It grows{" "}
+            <strong className="text-foreground">$100 per entrant</strong>.
+          </>
+        }
+      >
+        <TitleAccent>Payouts</TitleAccent>
+      </PageTitle>
 
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="flex items-baseline justify-between border-b border-border pb-3">

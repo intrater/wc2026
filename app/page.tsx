@@ -7,6 +7,7 @@ import { getPhase } from "@/lib/state/phase";
 import { LockCountdown } from "@/components/LockCountdown";
 import { SharePool } from "@/components/SharePool";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { PageTitle, TitleAccent } from "@/components/PageTitle";
 import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
 import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
 import { hookFor } from "@/lib/digest/email";
@@ -36,19 +37,20 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header className="pt-4 text-center">
-        <h1 className="font-display text-6xl font-extrabold leading-[0.95] sm:text-7xl">
-          THE <span className="text-neon text-glow">POOL</span>
-        </h1>
-        <p className="mt-2 text-xs font-bold uppercase tracking-[0.35em] text-muted-foreground">
-          World Cup 2026
-        </p>
+      <div className="text-center">
+        <PageTitle
+          sub={
+            <span className="text-xs font-bold uppercase tracking-[0.35em]">World Cup 2026</span>
+          }
+        >
+          The <TitleAccent>Pool</TitleAccent>
+        </PageTitle>
         {!phase.isLocked && lockAt && (
           <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-neon">
             <LockCountdown lockAt={lockAt} />
           </p>
         )}
-      </header>
+      </div>
 
       {showBoard ? (
         /* Tracking mode (submitted pre-lock, or anyone post-lock): the board IS the
