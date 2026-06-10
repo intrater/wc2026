@@ -7,7 +7,9 @@ import { getPhase } from "@/lib/state/phase";
 import { LockCountdown } from "@/components/LockCountdown";
 import { SharePool } from "@/components/SharePool";
 import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
-import { todayBusinessDay } from "@/lib/matches/day";
+import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
+import { hookFor } from "@/lib/digest/email";
+import type { Recap, RecapStats } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,7 @@ export default async function HomePage() {
         /* Tracking mode (submitted pre-lock, or anyone post-lock): the board IS the
            page — no "How it works" noise. Editing drops to the bottom, pre-lock only. */
         <>
+          <DigestPreview supabase={supabase} />
           <Leaderboard supabase={supabase} />
           {/* One action row, equal-width buttons. Pre-lock: Edit picks (primary) +
               Invite + Venmo-if-owing. Once the tournament is live, editing and
@@ -156,6 +159,56 @@ function Rules() {
         </a>
       </div>
     </div>
+  );
+}
+
+/**
+ * Teaser for the latest digest, above the standings. Renders nothing until the
+ * first digest exists; always shows the most recent day (the page is
+ * force-dynamic, so it rolls over automatically when each new digest publishes).
+ */
+async function DigestPreview({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
+  const { data } = await supabase
+    .from("recaps")
+    .select("business_day, stats, narrative")
+    .order("business_day", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+
+  const recap = data as Pick<Recap, "business_day" | "stats" | "narrative">;
+  const stats = recap.stats as RecapStats;
+
+  return (
+    <Link
+      href="/digest"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-xl transition-colors hover:border-neon/50"
+    >
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Morning Digest
+          <span className="ml-2 font-mono tracking-normal text-foreground">Day {stats.dayNumber}</span>
+        </h2>
+        <span className="text-xs font-semibold text-muted-foreground">
+          {formatBusinessDayLabel(recap.business_day)}
+        </span>
+      </div>
+      <div className="px-4 py-3">
+        <p className="text-xs font-bold text-neon">{hookFor(stats)}</p>
+        {recap.narrative ? (
+          <p className="mt-1.5 line-clamp-3 text-sm leading-relaxed text-foreground/90">
+            {recap.narrative}
+          </p>
+        ) : (
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            The box score is in: results, movers, upsets, and today&apos;s slate.
+          </p>
+        )}
+        <p className="mt-2 text-sm font-semibold text-neon transition-transform group-hover:translate-x-0.5">
+          Read the full digest →
+        </p>
+      </div>
+    </Link>
   );
 }
 
