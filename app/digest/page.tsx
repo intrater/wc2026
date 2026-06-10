@@ -137,7 +137,7 @@ function DigestCard({
       open={expanded}
       className="group overflow-hidden rounded-2xl border border-border bg-card shadow-xl"
     >
-      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-baseline justify-between gap-3 px-4 py-3 transition-colors active:bg-accent/40 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="font-display text-lg font-extrabold">Day {stats.dayNumber}</span>
           <span className="ml-2 text-xs text-muted-foreground">{label}</span>

@@ -10,6 +10,12 @@ export interface BottomNavItem {
   icon: "home" | "matches" | "digest" | "team" | "dev";
   /** Path prefixes that mark this tab active ("/" must match exactly). */
   active: string[];
+  /**
+   * Content-freshness key (e.g. the latest digest's business day). When it
+   * differs from what this device last saw (localStorage), the tab shows an
+   * unread dot; visiting the tab marks it seen.
+   */
+  unreadKey?: string;
 }
 
 /**
@@ -20,6 +26,7 @@ export interface BottomNavItem {
 export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
   const pathname = usePathname();
   const hidden = useHideOnScroll();
+  const unreadDots = useUnreadDots(items, pathname);
   const isActive = (prefixes: string[]) =>
     prefixes.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)));
 
@@ -36,11 +43,16 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold transition-colors ${
+              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold transition-[color,transform] active:scale-90 ${
                 active ? "text-neon" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <TabIcon name={item.icon} />
+              <span className="relative">
+                <TabIcon name={item.icon} />
+                {unreadDots.has(item.label) && (
+                  <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-neon shadow-[0_0_6px_oklch(0.89_0.18_100/0.9)]" />
+                )}
+              </span>
               <span className="truncate">{item.label}</span>
             </Link>
           );
@@ -48,6 +60,34 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
       </div>
     </nav>
   );
+}
+
+/**
+ * Unread dots, computed client-side after mount (localStorage isn't available
+ * during SSR, so the dot starts hidden and appears post-hydration — no
+ * mismatch). Visiting a tab records its unreadKey as seen.
+ */
+function useUnreadDots(items: BottomNavItem[], pathname: string): Set<string> {
+  const [dots, setDots] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const next = new Set<string>();
+    for (const item of items) {
+      if (!item.unreadKey) continue;
+      const storageKey = `seen:${item.label}`;
+      const onTab = item.active.some((p) =>
+        p === "/" ? pathname === "/" : pathname.startsWith(p),
+      );
+      if (onTab) {
+        localStorage.setItem(storageKey, item.unreadKey);
+      } else if (localStorage.getItem(storageKey) !== item.unreadKey) {
+        next.add(item.label);
+      }
+    }
+    setDots(next);
+  }, [items, pathname]);
+
+  return dots;
 }
 
 /**

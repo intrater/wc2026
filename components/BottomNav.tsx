@@ -28,13 +28,33 @@ export async function BottomNav() {
   const isDev = process.env.NODE_ENV === "development";
   if (!hasEntry && !isDev) return null;
 
+  // Latest digest day powers the unread dot on the Digest tab (client compares
+  // against the device's last-seen day in localStorage).
+  let latestDigestDay: string | null = null;
+  if (hasEntry) {
+    const supabase = await createClient();
+    const { data: latest } = await supabase
+      .from("recaps")
+      .select("business_day")
+      .order("business_day", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    latestDigestDay = latest?.business_day ?? null;
+  }
+
   const myTeamHref = phase.isLocked && entryId ? `/entry/${entryId}` : "/pick";
   const items: BottomNavItem[] = [
     { href: "/", label: "Home", icon: "home", active: ["/"] },
     ...(hasEntry
       ? ([
           { href: "/matches", label: "Matches", icon: "matches", active: ["/matches"] },
-          { href: "/digest", label: "Digest", icon: "digest", active: ["/digest"] },
+          {
+            href: "/digest",
+            label: "Digest",
+            icon: "digest",
+            active: ["/digest"],
+            unreadKey: latestDigestDay ?? undefined,
+          },
           { href: myTeamHref, label: "My Team", icon: "team", active: ["/pick", "/entry"] },
         ] satisfies BottomNavItem[])
       : []),

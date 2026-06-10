@@ -6,6 +6,7 @@ import { getUser } from "@/lib/auth/server";
 import { getPhase } from "@/lib/state/phase";
 import { LockCountdown } from "@/components/LockCountdown";
 import { SharePool } from "@/components/SharePool";
+import { AutoRefresh } from "@/components/AutoRefresh";
 import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
 import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
 import { hookFor } from "@/lib/digest/email";
@@ -53,6 +54,8 @@ export default async function HomePage() {
         /* Tracking mode (submitted pre-lock, or anyone post-lock): the board IS the
            page — no "How it works" noise. Editing drops to the bottom, pre-lock only. */
         <>
+          {/* Standings tick over during games without a manual reload. */}
+          <AutoRefresh />
           <DigestPreview supabase={supabase} />
           <Leaderboard supabase={supabase} />
           {/* One action row, equal-width buttons. Pre-lock: Edit picks (primary) +
@@ -193,7 +196,7 @@ async function DigestPreview({ supabase }: { supabase: Awaited<ReturnType<typeof
   return (
     <Link
       href="/digest"
-      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-xl transition-colors hover:border-neon/50"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-xl transition-[border-color,transform] hover:border-neon/50 active:scale-[0.98]"
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -286,7 +289,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
           const move = movementFor({ rank: r.rank, total: r.total }, snapByEntry.get(r.entryId));
           return (
             <li key={r.entryId}>
-              <Link href={`/entry/${r.entryId}`} className="flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-accent/40">
+              <Link href={`/entry/${r.entryId}`} className="flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-accent/40 active:bg-accent/60">
                 {/* Rank is meaningless pre-lock (everyone tied at 0) — hide it until scoring starts. */}
                 {phase.isLocked && (
                   <span className={`w-7 text-center font-mono font-bold ${r.rank === 1 ? "text-neon" : "text-muted-foreground"}`}>{r.rank}</span>

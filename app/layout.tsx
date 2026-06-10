@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { Geist, Tourney } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("dark font-sans", geist.variable, tourney.variable)}>
       <body className="min-h-screen antialiased">
+        <PullToRefresh />
         {/* pb-28 keeps content clear of the fixed bottom tab bar */}
         <main className="mx-auto w-full max-w-3xl px-4 py-6 pb-28">{children}</main>
         <BottomNav />

@@ -285,3 +285,9 @@
 @utility text-glow {
   text-shadow: 0 0 18px oklch(0.89 0.18 100 / 0.5);
 }
+
+/* Disable native browser pull-to-refresh (keeps the rubber-band bounce);
+   the in-app gesture (components/PullToRefresh.tsx) handles it instead. */
+body {
+  overscroll-behavior-y: contain;
+}
