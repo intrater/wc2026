@@ -124,6 +124,12 @@ export default async function MatchesPage() {
   const unplaced = rows.filter((m) => !m.kickoff);
   const days = groupByDay(rows);
 
+  // Before the bracket publishes, the schedule is group-stage only and nothing is TBD.
+  // Show a closing note so the list ending at the last group day reads as expected, not
+  // broken. It clears itself once any knockout fixture syncs in (dated or Date-TBD).
+  const bracketPending =
+    unplaced.length === 0 && !rows.some((m) => m.stage && m.stage !== "group");
+
   // ---------- "now" anchor ----------
   // The next match that hasn't kicked off yet; the now-line renders right before it and
   // the view auto-scrolls there. Matches are already chronological, so the first future
@@ -176,6 +182,13 @@ export default async function MatchesPage() {
       )}
 
       <div id="schedule-end" />
+
+      {bracketPending && (
+        <p className="px-4 pt-3 text-center text-sm text-muted-foreground">
+          The Round of 32 and knockout fixtures will be published once the group stage is
+          complete.
+        </p>
+      )}
 
       {unplaced.length > 0 && (
         <section className="pt-2">

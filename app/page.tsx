@@ -165,7 +165,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   const [{ data: rows }, { data: snapshots }] = await Promise.all([
     supabase
       .from("scores")
-      .select("entry_id, total, underdog_total, upset_total, entries(display_name)"),
+      .select("entry_id, total, underdog_total, upset_total, entries(display_name, paid)"),
     supabase.from("daily_standings").select("entry_id, total, rank").eq("business_day", today),
   ]);
 
@@ -189,22 +189,52 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   // Movement is meaningless before games can score — suppress the line pre-lock.
   const haveSnapshots = phase.isLocked && snapByEntry.size > 0;
 
+  // Pre-lock only: entries that exist but were never submitted (full or partial draft).
+  // They aren't scored or in the pool yet, so list them below the board with an
+  // "Incomplete" tag as a nudge. After lock they're moot — drop them entirely.
+  const drafts = phase.isLocked
+    ? []
+    : (
+        await supabase
+          .from("entries")
+          .select("id, display_name")
+          .is("submitted_at", null)
+          .order("display_name")
+      ).data ?? [];
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Leaderboard</h2>
-        <Link href="/how-it-works" className="text-sm font-semibold text-neon hover:underline">Point system</Link>
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Leaderboard
+          <span className="ml-2 font-mono tracking-normal text-foreground">{ranked.length}</span>
+        </h2>
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Link href="/payouts" className="text-neon hover:underline">Payouts</Link>
+          <span className="text-muted-foreground">/</span>
+          <Link href="/how-it-works" className="text-neon hover:underline">Point system</Link>
+        </div>
       </div>
       <ol>
         {ranked.map((r) => {
           const s = byEntry.get(r.entryId)!;
-          const e = s.entries as unknown as { display_name: string };
+          const e = s.entries as unknown as { display_name: string; paid: boolean };
           const move = movementFor({ rank: r.rank, total: r.total }, snapByEntry.get(r.entryId));
           return (
             <li key={r.entryId}>
               <Link href={`/entry/${r.entryId}`} className="flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-accent/40">
-                <span className={`w-7 text-center font-mono font-bold ${r.rank === 1 ? "text-neon" : "text-muted-foreground"}`}>{r.rank}</span>
-                <span className="flex-1 font-semibold">{e?.display_name}</span>
+                {/* Rank is meaningless pre-lock (everyone tied at 0) — hide it until scoring starts. */}
+                {phase.isLocked && (
+                  <span className={`w-7 text-center font-mono font-bold ${r.rank === 1 ? "text-neon" : "text-muted-foreground"}`}>{r.rank}</span>
+                )}
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 font-semibold">
+                  <span className="truncate">{e?.display_name}</span>
+                  {!e?.paid && (
+                    <span className="shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Unpaid
+                    </span>
+                  )}
+                </span>
                 <span className="text-right">
                   <span className="block text-lg font-extrabold tabular-nums text-foreground">{s.total}</span>
                   {haveSnapshots && <MovementLine move={move} />}
@@ -214,6 +244,21 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
           );
         })}
       </ol>
+      {drafts.length > 0 && (
+        <ul className="border-t border-border">
+          {drafts.map((d) => (
+            <li
+              key={d.id}
+              className="flex items-center gap-3 border-b border-border px-4 py-3 opacity-60 last:border-0"
+            >
+              <span className="flex-1 truncate font-semibold text-muted-foreground">{d.display_name}</span>
+              <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-destructive">
+                Incomplete
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

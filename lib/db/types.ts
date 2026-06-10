@@ -24,7 +24,7 @@ export interface Settings {
   lock_at: string | null;
   tiers_frozen_at: string | null;
   tournament_complete: boolean;
-  payout_split: { champion: number; runner_up: number; group_leader: number };
+  payout_split: { champion: number; runner_up: number; group_leader: number; group_runner_up: number };
   entry_fee_cents: number;
 }
 
