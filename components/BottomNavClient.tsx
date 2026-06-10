@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,11 +19,16 @@ export interface BottomNavItem {
  */
 export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
   const pathname = usePathname();
+  const hidden = useHideOnScroll();
   const isActive = (prefixes: string[]) =>
     prefixes.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+    <nav
+      className={`fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        hidden ? "translate-y-[150%]" : "translate-y-0"
+      }`}
+    >
       <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[26px] border border-white/15 bg-background/35 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
         {items.map((item) => {
           const active = isActive(item.active);
@@ -42,6 +48,41 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
       </div>
     </nav>
   );
+}
+
+/**
+ * Safari-toolbar behavior: slide the bar away while scrolling down (consuming
+ * content), bring it back the moment the user scrolls up (navigating intent).
+ * A small delta threshold avoids flicker from micro-scrolls and iOS rubber-
+ * banding; the bar is always shown near the top of the page. Re-shows on
+ * route change so a navigation never lands on a hidden nav.
+ */
+function useHideOnScroll(): boolean {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setHidden(false);
+    lastY.current = window.scrollY;
+  }, [pathname]);
+
+  useEffect(() => {
+    const THRESHOLD = 10;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastY.current;
+      if (Math.abs(delta) < THRESHOLD) return;
+      // Near the top (or overscrolled above it), always show.
+      if (y < 80) setHidden(false);
+      else setHidden(delta > 0);
+      lastY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return hidden;
 }
 
 function TabIcon({ name }: { name: BottomNavItem["icon"] }) {
