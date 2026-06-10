@@ -26,25 +26,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("dark font-sans", geist.variable, tourney.variable)}>
       <body className="min-h-screen antialiased">
-        {/* Colophon button — tablet/desktop only; a quiet </> circle that
-            expands to its label on hover. Phones keep a clean viewport. */}
+        {/* Colophon button — a quiet 🤔 circle in the top-right that scrolls
+            away with the page; expands to its label on hover (desktop). */}
         <Link
           href="/how-its-built"
           aria-label="How it's built"
-          className="group fixed right-4 top-4 z-20 hidden items-center rounded-full border border-white/15 bg-background/40 p-2 text-xs font-semibold text-muted-foreground shadow-2xl backdrop-blur-xl transition-colors hover:text-neon md:inline-flex"
+          className="group absolute right-4 top-4 z-20 inline-flex items-center rounded-full border border-white/15 bg-background/40 px-2 py-1 text-xs font-semibold text-muted-foreground shadow-2xl backdrop-blur-xl transition-colors hover:text-neon"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 shrink-0"
-            aria-hidden
-          >
-            <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
-          </svg>
+          <span className="text-base leading-none" aria-hidden>
+            🤔
+          </span>
           <span className="max-w-0 overflow-hidden whitespace-nowrap transition-[max-width,padding] duration-300 group-hover:max-w-36 group-hover:pl-2">
             How it&apos;s built
           </span>

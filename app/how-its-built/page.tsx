@@ -36,6 +36,18 @@ export default function HowItsBuiltPage() {
           together in conversation: I made the calls, it wrote the code. No engineers were
           harmed. Or hired.
         </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          The code is public. Poke around at{" "}
+          <a
+            href="https://github.com/intrater/wc2026"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-neon hover:underline"
+          >
+            github.com/intrater/wc2026
+          </a>
+          .
+        </p>
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
           {[
             ["10", "days"],
