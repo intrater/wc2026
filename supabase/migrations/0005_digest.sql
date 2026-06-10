@@ -1,0 +1,11 @@
+-- 0005: morning digest email opt-in.
+--
+-- profiles.digest_opt_in: subscription flag for the ~7am ET digest email.
+-- Written ONLY via service-role server actions (profiles have no client write
+-- policies — see 0002 "writes via service role only"); the owner reads it through
+-- the existing self-read policy. Unsubscribe without login is authorized by an
+-- HMAC link signature (DIGEST_LINK_SECRET) and also applied via service role.
+--
+-- ADD COLUMN with a constant default is metadata-only on PG11+ — safe to run
+-- against the live 3-minute poll.
+alter table profiles add column digest_opt_in boolean not null default false;

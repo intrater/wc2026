@@ -2,12 +2,18 @@
 // resume guards:
 //   1. day-done + no recaps row  → insert recaps(business_day, stats)   (PK race guard)
 //   2. row exists, narrative null → exactly ONE Claude attempt this poll
-//   3. (U9, deferred) email blast — not implemented; emailed_at stays null
+//   3. opt-in email send happens in a later poll stage (lib/digest/send.ts),
+//      gated to ~7am ET the next morning
 // A crash between stages self-heals on the next poll tick.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { RecapStats } from "@/lib/db/types";
-import { businessDayOf, isResolved, todayBusinessDay } from "@/lib/matches/day";
+import {
+  businessDayOf,
+  isResolved,
+  todayBusinessDay,
+  yesterdayBusinessDay,
+} from "@/lib/matches/day";
 import { buildDayNumber, buildDayStats, type StatsMatchRow } from "./stats";
 import { SYSTEM_PROMPT, buildUserPrompt } from "./prompt";
 
@@ -18,11 +24,6 @@ export interface RecapStageResult {
   dayDone: boolean;
   created: boolean;
   narrative: "exists" | "generated" | "failed" | "skipped";
-}
-
-/** Yesterday's ET date relative to `now` (for the midnight-rollover catch-up). */
-function yesterdayBusinessDay(now: number): string {
-  return todayBusinessDay(now - 24 * 60 * 60 * 1000);
 }
 
 /**

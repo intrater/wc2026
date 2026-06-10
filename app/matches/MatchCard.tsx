@@ -1,6 +1,6 @@
-import type { Match, MatchStage } from "@/lib/db/types";
+import type { Match } from "@/lib/db/types";
 import type { TeamInfo } from "@/lib/views/data";
-import { cardStateFor, formatKickoffTimeET, type CardState } from "@/lib/matches/day";
+import { STAGE_LABEL, cardStateFor, formatKickoffTimeET, type CardState } from "@/lib/matches/day";
 
 export type CalendarMatch = Pick<
   Match,
@@ -26,17 +26,6 @@ export interface ViewerPoints {
   points: number;
   label: string;
 }
-
-const STAGE_LABEL: Record<MatchStage, string> = {
-  group: "Group Stage",
-  r32: "Round of 32",
-  r16: "Round of 16",
-  qf: "Quarterfinal",
-  sf: "Semifinal",
-  third_place: "3rd-place playoff",
-  final: "Final",
-};
-
 
 /** 2× the poll interval: beyond this a "live" score may be stale. */
 const STALE_MS = 6 * 60 * 1000;

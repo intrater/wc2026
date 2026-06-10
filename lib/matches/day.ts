@@ -4,7 +4,7 @@
 //
 // Business day = the America/New_York calendar date of kickoff. A 10:30pm ET kickoff
 // that ends after midnight still belongs to its ET start date.
-import type { Match } from "@/lib/db/types";
+import type { Match, MatchStage } from "@/lib/db/types";
 
 // ---------- API-Football status buckets (verified against v3 docs) ----------
 // Shared constants so ingest (U2) and the recap day-done predicate (U7) can never
@@ -52,6 +52,22 @@ export function businessDayOf(kickoff: string | Date): string {
 export function todayBusinessDay(now: number = Date.now()): string {
   return ET_DAY.format(new Date(now));
 }
+
+/** Yesterday's ET calendar date relative to `now` (recap catch-up, digest send). */
+export function yesterdayBusinessDay(now: number = Date.now()): string {
+  return todayBusinessDay(now - 24 * 60 * 60 * 1000);
+}
+
+/** Human label per stage, shared by the calendar cards and the digest docket. */
+export const STAGE_LABEL: Record<MatchStage, string> = {
+  group: "Group Stage",
+  r32: "Round of 32",
+  r16: "Round of 16",
+  qf: "Quarterfinal",
+  sf: "Semifinal",
+  third_place: "3rd-place playoff",
+  final: "Final",
+};
 
 // ---------- shared ET display formatters ----------
 const DAY_LABEL = new Intl.DateTimeFormat("en-US", {

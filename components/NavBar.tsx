@@ -5,9 +5,8 @@ import { getPhase } from "@/lib/state/phase";
 
 /**
  * Top nav. Pre-lock, "Matches"/"My Picks" appear only for entrants (the landing-page
- * CTA is the way in for newcomers). Once the tournament locks, Matches and Recap are
- * visible to EVERYONE — the app is fully public in tracking mode (U8); only My Picks
- * stays entry-gated.
+ * CTA is the way in for newcomers). Post-lock privacy (0004) keeps every pool link —
+ * Matches, Digest, My Team — gated on having a submitted entry.
  */
 export async function NavBar() {
   const [user, phase] = await Promise.all([getUser(), getPhase()]);
@@ -43,7 +42,7 @@ export async function NavBar() {
             <Link href="/matches" className="text-muted-foreground transition-colors hover:text-foreground">Matches</Link>
           )}
           {phase.isLocked && hasEntry && (
-            <Link href="/recap" className="text-muted-foreground transition-colors hover:text-foreground">Recap</Link>
+            <Link href="/digest" className="text-muted-foreground transition-colors hover:text-foreground">Digest</Link>
           )}
           {hasEntry && (
             <Link href={myTeamHref} className="text-muted-foreground transition-colors hover:text-foreground">My Team</Link>

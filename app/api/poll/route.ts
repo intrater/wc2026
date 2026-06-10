@@ -3,10 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { runIngest } from "@/lib/api-football/ingest";
 import { ensureDailySnapshot } from "@/lib/standings/snapshot";
 import { maybeGenerateRecap } from "@/lib/recap/generate";
+import { maybeSendDigest } from "@/lib/digest/send";
 
 export const dynamic = "force-dynamic";
-// Recap-day passes run ingest + recompute + Claude in one invocation; normal polls
-// still finish in seconds. (Email blast is U9, deferred.)
+// Recap-day passes run ingest + recompute + Claude (+ the morning email blast)
+// in one invocation; normal polls still finish in seconds.
 export const maxDuration = 300;
 
 /**
@@ -16,8 +17,12 @@ export const maxDuration = 300;
  *      any result this poll processes
  *   2. runIngest — fixtures + live state upsert, then score recompute
  *   3. maybeGenerateRecap — once the day's last match resolves
- * Stages 1 and 3 are wrapped so their failure can't break ingest/scoring; per-stage
- * status is reported in the response JSON so silent skips are visible to the admin.
+ *   4. maybeSendDigest — first poll at/after 7am ET emails yesterday's digest to
+ *      opt-in subscribers; AFTER the recap stage so Claude gets a final narrative
+ *      attempt before the send
+ * Stages 1, 3, and 4 are wrapped so their failure can't break ingest/scoring;
+ * per-stage status is reported in the response JSON so silent skips are visible
+ * to the admin.
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -48,6 +53,12 @@ export async function GET(request: NextRequest) {
     stages.recap = await maybeGenerateRecap(admin);
   } catch (e) {
     stages.recap = { error: e instanceof Error ? e.message : "recap failed" };
+  }
+
+  try {
+    stages.digestEmail = await maybeSendDigest(admin);
+  } catch (e) {
+    stages.digestEmail = { error: e instanceof Error ? e.message : "digest email failed" };
   }
 
   return NextResponse.json({ ok: true, ...stages });

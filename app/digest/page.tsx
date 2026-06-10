@@ -1,48 +1,70 @@
 import { createClient } from "@/lib/supabase/server";
 import { checkPoolAccess } from "@/lib/auth/poolAccess";
+import { getUserAndProfile } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 import type { Recap, RecapStats } from "@/lib/db/types";
-import { formatBusinessDayLabel } from "@/lib/matches/day";
+import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
+import { buildDocket, type DocketItem, type DocketMatchRow } from "@/lib/digest/docket";
+import { hookFor } from "@/lib/digest/email";
+import { loadTeamMap } from "@/lib/views/data";
+import { DigestToggle } from "./DigestToggle";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Daily recap feed (U8). Newest first; the most recent day is expanded, prior days
- * collapse behind <details> (no client JS). Recaps are immutable once published —
- * see plan Scope Boundaries. Email delivery is U9 (deferred).
+ * Morning digest: today's docket up top, then the rolling daily feed (newest
+ * first; the most recent day expanded, prior days collapse behind <details>,
+ * no client JS). Day summaries are immutable once published. Subscribers can
+ * opt in to the ~7am ET email here (lib/digest/send.ts).
  */
-export default async function RecapPage() {
+export default async function DigestPage() {
   const access = await checkPoolAccess();
   if (access === "signin") redirect("/login");
   if (access === "no-entry") redirect("/not-entered");
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("recaps")
-    .select("business_day, stats, narrative, created_at")
-    .order("business_day", { ascending: false });
+  const today = todayBusinessDay();
+  const [{ data }, { data: matchRows }, teamMap, ctx] = await Promise.all([
+    supabase
+      .from("recaps")
+      .select("business_day, stats, narrative, created_at")
+      .order("business_day", { ascending: false }),
+    supabase
+      .from("matches")
+      .select(
+        "fixture_id, stage, group_label, kickoff, status, home_team_id, away_team_id, live_home_goals, live_away_goals",
+      )
+      .not("kickoff", "is", null),
+    loadTeamMap(),
+    getUserAndProfile(),
+  ]);
 
   const recaps = (data ?? []) as Array<Pick<Recap, "business_day" | "stats" | "narrative" | "created_at">>;
+  const docket = buildDocket((matchRows ?? []) as DocketMatchRow[], teamMap, today);
 
   return (
     <div className="space-y-5">
       <header className="text-center">
         <h1 className="font-display text-4xl font-extrabold">
-          Daily <span className="text-neon text-glow">Recap</span>
+          Morning <span className="text-neon text-glow">Digest</span>
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          What happened, who moved, and who's talking trash tomorrow.
+          What happened, who moved, and what&apos;s on today&apos;s docket.
         </p>
       </header>
 
+      <TodayCard docket={docket} today={today} />
+
+      {ctx?.profile && <DigestToggle initial={ctx.profile.digest_opt_in} />}
+
       {recaps.length === 0 ? (
         <p className="py-10 text-center text-muted-foreground">
-          The first recap drops after the first match day ends. ⚽️
+          The first digest drops after the first match day ends. ⚽️
         </p>
       ) : (
         <div className="space-y-3">
           {recaps.map((r, i) => (
-            <RecapCard key={r.business_day} recap={r} expanded={i === 0} />
+            <DigestCard key={r.business_day} recap={r} expanded={i === 0} />
           ))}
         </div>
       )}
@@ -50,17 +72,43 @@ export default async function RecapPage() {
   );
 }
 
-function hookFor(stats: RecapStats): string {
-  if (stats.upsets.length > 0) {
-    const u = stats.upsets[0];
-    return `${u.teamName} shocker (+${u.points})`;
-  }
-  if (stats.topGainer) return `${stats.topGainer} had a day`;
-  if (stats.topThree.length > 0) return `${stats.topThree[0]} leads the pool`;
-  return "Full results inside";
+/** Today's slate — always live-computed, never stored with a day's digest. */
+function TodayCard({ docket, today }: { docket: DocketItem[]; today: string }) {
+  return (
+    <section className="rounded-2xl border border-border bg-card px-4 py-3 shadow-xl">
+      <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        Today — {formatBusinessDayLabel(today)}
+      </h2>
+      {docket.length === 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">No matches today — rest day. 😴</p>
+      ) : (
+        <ul className="mt-2 space-y-1 text-sm">
+          {docket.map((m) => (
+            <li key={m.fixtureId} className="flex items-baseline justify-between gap-3 tabular-nums">
+              <span>
+                <span className="font-semibold">
+                  {m.home ? `${m.home.flag} ${m.home.name}` : "TBD"}
+                  {" vs "}
+                  {m.away ? `${m.away.name} ${m.away.flag}` : "TBD"}
+                </span>
+                <span className="ml-2 text-xs text-muted-foreground">{m.contextLabel}</span>
+              </span>
+              {m.live ? (
+                <span className="shrink-0 rounded bg-neon/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neon">
+                  ● {m.live.home}–{m.live.away}
+                </span>
+              ) : (
+                <span className="shrink-0 text-xs text-muted-foreground">{m.kickoffET} ET</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
 }
 
-function RecapCard({
+function DigestCard({
   recap,
   expanded,
 }: {
@@ -88,7 +136,7 @@ function RecapCard({
           <p className="whitespace-pre-line text-sm leading-relaxed">{recap.narrative}</p>
         ) : (
           <p className="text-sm italic text-muted-foreground">
-            The robot pundit is speechless tonight — here's the box score:
+            The robot pundit is speechless tonight — here&apos;s the box score:
           </p>
         )}
 

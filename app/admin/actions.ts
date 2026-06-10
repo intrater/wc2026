@@ -7,6 +7,7 @@ import { runIngest } from "@/lib/api-football/ingest";
 import { runRecompute } from "@/lib/scoring/persist";
 import { ensureDailySnapshot } from "@/lib/standings/snapshot";
 import { maybeGenerateRecap } from "@/lib/recap/generate";
+import { maybeSendDigest } from "@/lib/digest/send";
 
 async function assertAdmin() {
   if (!(await isAdmin())) throw new Error("Not authorized");
@@ -93,11 +94,15 @@ export async function runIngestNow() {
   await assertAdmin();
   const admin = createAdminClient();
   try {
-    // Mirror the cron's stage order (snapshot → ingest → recap) so a manual sync
-    // during a cron outage still establishes the movement baseline and the recap.
+    // Mirror the cron's stage order (snapshot → ingest → recap → digest email) so a
+    // manual sync during a cron outage still establishes the movement baseline, the
+    // recap, and the morning email. maybeSendDigest carries all its own guards
+    // (7am ET window, exactly-yesterday recap, atomic emailed_at claim), so this
+    // can never double-send or send early.
     await ensureDailySnapshot(admin).catch(() => undefined);
     const summary = await runIngest(admin);
     await maybeGenerateRecap(admin).catch(() => undefined);
+    await maybeSendDigest(admin).catch(() => undefined);
     revalidateAll();
     return { ok: true, summary };
   } catch (e) {

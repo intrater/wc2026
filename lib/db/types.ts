@@ -33,6 +33,7 @@ export interface Profile {
   email: string | null;
   display_name: string | null;
   is_admin: boolean;
+  digest_opt_in: boolean; // morning digest email subscription (0005); opt-in only
   created_at: string;
 }
 
@@ -109,7 +110,7 @@ export interface Recap {
   stats: RecapStats;
   narrative: string | null;
   narrative_model: string | null;
-  email_log: { sent: string[]; failed: string[] } | null; // entry_ids, never emails (U9)
+  email_log: { sent: string[]; failed: string[] } | null; // entry_ids, never emails
   created_at: string;
   emailed_at: string | null;
 }
@@ -139,6 +140,21 @@ export interface RecapStats {
   upsets: Array<{ teamName: string; label: string; points: number }>;
   goalBonusStandouts: Array<{ teamName: string; goals: number }>;
   topThree: string[];
+  /**
+   * Next fixture-bearing ET day after the recapped day (not literal tomorrow —
+   * rest days are skipped), so the narrative's look-ahead line can name a real
+   * matchup. Public schedule data only. Absent on rows created before 0005.
+   */
+  lookAhead?: {
+    day: string; // YYYY-MM-DD (America/New_York)
+    fixtures: Array<{
+      home: { name: string; flag: string } | null; // null = TBD knockout slot
+      away: { name: string; flag: string } | null;
+      stage: MatchStage | null;
+      groupLabel: string | null;
+      kickoffET: string; // e.g. "3:00 PM"
+    }>;
+  };
 }
 
 /** Terminal match statuses that are eligible for scoring (Scoring Spec §5.5). */

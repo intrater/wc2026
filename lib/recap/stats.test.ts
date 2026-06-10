@@ -150,3 +150,54 @@ describe("buildDayStats", () => {
     expect(stats.topGainer).toBeNull(); // nobody has a measurable day
   });
 });
+
+describe("buildDayStats lookAhead", () => {
+  it("targets the next fixture-bearing day, skipping rest days", () => {
+    const stats = buildDayStats(
+      baseInput({
+        matches: [
+          matchRow({ fixture_id: 100 }), // recap day (June 11)
+          // June 12 is a rest day; next fixtures are June 13.
+          matchRow({ fixture_id: 102, kickoff: "2026-06-13T20:00:00Z", status: "NS", home_goals: null, away_goals: null }),
+          matchRow({ fixture_id: 101, kickoff: "2026-06-13T16:00:00Z", status: "NS", home_team_id: 3, away_team_id: 1, home_goals: null, away_goals: null }),
+          matchRow({ fixture_id: 103, kickoff: "2026-06-14T16:00:00Z", status: "NS" }), // beyond next day
+        ],
+      }),
+    );
+    expect(stats.lookAhead?.day).toBe("2026-06-13");
+    // Kickoff-sorted; only the next day's fixtures included.
+    expect(stats.lookAhead?.fixtures).toHaveLength(2);
+    expect(stats.lookAhead?.fixtures[0].home).toEqual({ name: "Brazil", flag: "🇧🇷" });
+    expect(stats.lookAhead?.fixtures[0].kickoffET).toBe("12:00 PM");
+  });
+
+  it("renders TBD knockout slots as null teams", () => {
+    const stats = buildDayStats(
+      baseInput({
+        matches: [
+          matchRow({ fixture_id: 100 }),
+          matchRow({
+            fixture_id: 200,
+            stage: "r32",
+            group_label: null,
+            kickoff: "2026-06-12T16:00:00Z",
+            status: "NS",
+            home_team_id: null,
+            away_team_id: null,
+            home_goals: null,
+            away_goals: null,
+          }),
+        ],
+      }),
+    );
+    expect(stats.lookAhead?.fixtures[0].home).toBeNull();
+    expect(stats.lookAhead?.fixtures[0].away).toBeNull();
+    expect(stats.lookAhead?.fixtures[0].stage).toBe("r32");
+  });
+
+  it("is absent when no future fixtures remain (after the final)", () => {
+    const stats = buildDayStats(baseInput());
+    expect(stats.lookAhead).toBeUndefined();
+    expect("lookAhead" in stats).toBe(false); // omitted, not null — old rows match
+  });
+});

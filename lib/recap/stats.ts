@@ -3,7 +3,7 @@
 // publicly readable recaps.stats jsonb, so fields are strictly allowlisted:
 // display_name (truncated), rank, totals, deltas — NEVER paid / user_id / email.
 import type { RecapStats, MatchStage, MatchDecidedBy } from "@/lib/db/types";
-import { businessDayOf, isResolved } from "@/lib/matches/day";
+import { businessDayOf, formatKickoffTimeET, isResolved } from "@/lib/matches/day";
 import { movementFor, rankWithTies, type StandingRow } from "@/lib/standings/snapshot";
 
 export const DISPLAY_NAME_MAX = 40; // bounds prompt-injection payload size too
@@ -145,6 +145,8 @@ export function buildDayStats(input: BuildStatsInput): RecapStats {
     .slice(0, 3)
     .map(([teamId, goals]) => ({ teamName: teams.get(teamId)?.name ?? "Unknown", goals }));
 
+  const lookAhead = buildLookAhead(matches, teams, day);
+
   return {
     dayNumber,
     results,
@@ -154,5 +156,43 @@ export function buildDayStats(input: BuildStatsInput): RecapStats {
     upsets,
     goalBonusStandouts,
     topThree: statEntries.slice(0, 3).map((e) => e.displayName),
+    ...(lookAhead ? { lookAhead } : {}),
   };
+}
+
+/**
+ * The next fixture-bearing ET day after `day` (rest days skipped), so the
+ * narrative's closing look-ahead line can name a real matchup. Public schedule
+ * data only; undefined once no future fixtures remain (after the final).
+ */
+function buildLookAhead(
+  matches: StatsMatchRow[],
+  teams: Map<number, StatsTeam>,
+  day: string,
+): RecapStats["lookAhead"] {
+  let nextDay: string | null = null;
+  for (const m of matches) {
+    if (!m.kickoff) continue;
+    const d = businessDayOf(m.kickoff);
+    if (d <= day) continue;
+    if (nextDay === null || d < nextDay) nextDay = d;
+  }
+  if (nextDay === null) return undefined;
+
+  const fixtures = matches
+    .filter((m) => m.kickoff && businessDayOf(m.kickoff) === nextDay)
+    .sort((a, b) => (a.kickoff ?? "").localeCompare(b.kickoff ?? ""))
+    .map((m) => {
+      const home = m.home_team_id != null ? teams.get(m.home_team_id) : undefined;
+      const away = m.away_team_id != null ? teams.get(m.away_team_id) : undefined;
+      return {
+        home: home ? { name: home.name, flag: home.flag } : null,
+        away: away ? { name: away.name, flag: away.flag } : null,
+        stage: m.stage,
+        groupLabel: m.group_label,
+        kickoffET: formatKickoffTimeET(m.kickoff!),
+      };
+    });
+
+  return { day: nextDay, fixtures };
 }
