@@ -20,19 +20,7 @@ export default function AppleIcon() {
           background: "linear-gradient(150deg, #38328c 0%, #221e57 100%)",
         }}
       >
-        <div style={{ fontSize: 92, display: "flex" }}>🇺🇸</div>
-        <div
-          style={{
-            marginTop: 4,
-            fontSize: 32,
-            fontWeight: 800,
-            color: "#f2d50f",
-            letterSpacing: 4,
-            display: "flex",
-          }}
-        >
-          2026
-        </div>
+        <div style={{ fontSize: 120, display: "flex" }}>🇺🇸</div>
       </div>
     ),
     { ...size, emoji: "twemoji" },
