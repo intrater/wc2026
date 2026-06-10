@@ -11,8 +11,16 @@ import { Label } from "@/components/ui/label";
  * funnel) and "signin" (email only, for returning entrants). Post-lock the
  * pool is closed to new entries, so only signin renders.
  */
-export function LoginForm({ locked }: { locked: boolean }) {
-  const [mode, setMode] = useState<"join" | "signin">(locked ? "signin" : "join");
+export function LoginForm({
+  locked,
+  initialMode,
+}: {
+  locked: boolean;
+  initialMode?: "join" | "signin";
+}) {
+  const [mode, setMode] = useState<"join" | "signin">(
+    locked ? "signin" : (initialMode ?? "join"),
+  );
   const [state, formAction, pending] = useActionState<MagicLinkState, FormData>(
     sendMagicLink,
     {},

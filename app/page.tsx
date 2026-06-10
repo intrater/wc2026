@@ -87,6 +87,17 @@ export default async function HomePage() {
         /* Pick mode: conversion-focused — rules + the one big CTA. */
         <>
           <Rules />
+          {/* Returning entrants who got logged out need a way back in that isn't
+              the signup funnel. Signed-in users see the board instead, so this
+              only renders for signed-out visitors. */}
+          {!user && (
+            <p className="text-center text-sm text-muted-foreground">
+              Already in the pool?{" "}
+              <Link href="/login?mode=signin" className="font-semibold text-neon hover:underline">
+                Sign in
+              </Link>
+            </p>
+          )}
           {!phase.isLocked && (
             <Link
               href="/pick"
