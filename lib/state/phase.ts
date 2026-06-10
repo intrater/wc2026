@@ -22,7 +22,7 @@ export function derivePhase(
 }
 
 /**
- * Load the current phase from the database. Wrapped in React cache() so NavBar +
+ * Load the current phase from the database. Wrapped in React cache() so BottomNav +
  * page components calling it in the same request share one settings query.
  */
 export const getPhase = cache(async (): Promise<PhaseInfo> => {

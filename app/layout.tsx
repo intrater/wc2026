@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { NavBar } from "@/components/NavBar";
+import { BottomNav } from "@/components/BottomNav";
 import { Geist, Tourney } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -12,14 +12,22 @@ export const metadata: Metadata = {
   description: "The annual World Cup fantasy pool — draft your tiers, chase the chaos.",
 };
 
+// viewportFit: "cover" lets the bottom tab bar pad itself around the iPhone
+// home indicator via env(safe-area-inset-bottom).
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: "#2d2a72",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={cn("dark font-sans", geist.variable, tourney.variable)}>
       <body className="min-h-screen antialiased">
-        <NavBar />
-        <main className="mx-auto w-full max-w-3xl px-4 py-6">{children}</main>
+        {/* pb-28 keeps content clear of the fixed bottom tab bar */}
+        <main className="mx-auto w-full max-w-3xl px-4 py-6 pb-28">{children}</main>
+        <BottomNav />
       </body>
     </html>
   );
