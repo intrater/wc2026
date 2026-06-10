@@ -36,14 +36,14 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
         hidden ? "translate-y-[150%]" : "translate-y-0"
       }`}
     >
-      <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[26px] border border-white/15 bg-background/15 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
+      <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[24px] border border-white/15 bg-background/15 px-2 py-0.5 shadow-2xl backdrop-blur-lg">
         {items.map((item) => {
           const active = isActive(item.active);
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10px] font-semibold transition-[color,transform] active:scale-90 ${
+              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1 text-[10px] font-semibold transition-[color,transform] active:scale-90 ${
                 active ? "text-neon" : "text-muted-foreground hover:text-foreground"
               }`}
             >
