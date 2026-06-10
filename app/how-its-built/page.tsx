@@ -10,14 +10,7 @@ export const metadata = { title: "How It's Built · World Cup 2026 Pool" };
 export default function HowItsBuiltPage() {
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      <PageTitle
-        sub={
-          <>
-            The honest answer: I described what I wanted, and{" "}
-            <strong className="text-foreground">Claude Code wrote every line</strong>.
-          </>
-        }
-      >
+      <PageTitle>
         How It&apos;s <TitleAccent>Built</TitleAccent>
       </PageTitle>
 

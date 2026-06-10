@@ -36,7 +36,7 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
         hidden ? "translate-y-[150%]" : "translate-y-0"
       }`}
     >
-      <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[26px] border border-white/15 bg-background/35 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
+      <div className="mx-auto flex max-w-md items-stretch justify-around rounded-[26px] border border-white/15 bg-background/15 px-2 py-1.5 shadow-2xl backdrop-blur-xl">
         {items.map((item) => {
           const active = isActive(item.active);
           return (
