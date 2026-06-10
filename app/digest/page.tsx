@@ -55,6 +55,8 @@ export default async function DigestPage() {
         </p>
       </header>
 
+      {ctx?.profile && <DigestToggle initial={ctx.profile.digest_opt_in} />}
+
       <TodayCard docket={docket} today={today} preTournament={!phase.isLocked} />
 
       {recaps.length === 0 ? (
@@ -68,8 +70,6 @@ export default async function DigestPage() {
           ))}
         </div>
       )}
-
-      {ctx?.profile && <DigestToggle initial={ctx.profile.digest_opt_in} />}
     </div>
   );
 }

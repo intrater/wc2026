@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { setDigestOptIn } from "./actions";
 
 /**
- * Opt-in switch for the ~7am ET digest email. Optimistic: flips immediately,
- * reverts with an inline error if the server action fails.
+ * Opt-in switch for the ~7am ET digest email. Lightweight inline row (no card)
+ * that reads as a question when off and a status when on. Optimistic: flips
+ * immediately, reverts with an inline error if the server action fails.
  */
 export function DigestToggle({ initial }: { initial: boolean }) {
   const [on, setOn] = useState(initial);
@@ -26,35 +27,34 @@ export function DigestToggle({ initial }: { initial: boolean }) {
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card px-4 py-3 shadow-xl">
-      <div className="flex items-center justify-between gap-3">
-        <span>
-          <span className="text-sm font-semibold">
-            Want to get these delivered to your inbox?
+    <div className="text-center">
+      <div className="inline-flex items-center justify-center gap-2.5 text-xs">
+        {on ? (
+          <span className="font-semibold text-neon">✓ Signed up for morning emails</span>
+        ) : (
+          <span className="text-muted-foreground">
+            Want these in your inbox every morning (~7am ET)?
           </span>
-          <span className="block text-xs text-muted-foreground">
-            Sign up for daily digests. They land around 7am ET on match days.
-          </span>
-        </span>
+        )}
         <button
           type="button"
           role="switch"
           aria-checked={on}
-          aria-label="Sign up for daily digests"
+          aria-label="Sign up for daily digest emails"
           onClick={toggle}
           disabled={pending}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
             on ? "bg-neon" : "bg-muted"
           } ${pending ? "opacity-70" : ""}`}
         >
           <span
-            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-background transition-transform ${
-              on ? "translate-x-5" : ""
+            className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background transition-transform ${
+              on ? "translate-x-4" : ""
             }`}
           />
         </button>
       </div>
-      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-    </section>
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
   );
 }
