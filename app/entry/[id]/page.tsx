@@ -60,7 +60,9 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-5">
       <div className="text-center">
-        <PageTitle>{entry.display_name}</PageTitle>
+        <PageTitle sub={<>Every pick and every point, team by team.</>}>
+          {entry.display_name}
+        </PageTitle>
         {score && (
           <p className="mt-2 text-muted-foreground">
             <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts

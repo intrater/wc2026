@@ -63,15 +63,20 @@ export default async function PickPage() {
   return (
     <div className="space-y-5">
       <div className="text-center">
-        <PageTitle>
+        <PageTitle
+          sub={
+            submitted ? (
+              <>Your 12 picks, one from every tier.</>
+            ) : (
+              <>
+                Pick <strong className="text-foreground">one team from each of the 12 tiers</strong>.{" "}
+                <Link href="/how-it-works" className="font-semibold text-neon hover:underline">Scoring details</Link>
+              </>
+            )
+          }
+        >
           My <TitleAccent>Team</TitleAccent>
         </PageTitle>
-        {!submitted && (
-          <p className="mt-2 text-muted-foreground">
-            Pick <strong className="text-foreground">one team from each of the 12 tiers</strong>.{" "}
-            <Link href="/how-it-works" className="font-semibold text-neon hover:underline">Scoring details</Link>
-          </p>
-        )}
         {lockAt && (
           <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-neon">
             <LockCountdown lockAt={lockAt.toISOString()} />

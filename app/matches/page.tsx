@@ -112,7 +112,7 @@ export default async function MatchesPage() {
   if (rows.length === 0) {
     return (
       <div className="space-y-3 pt-8 text-center text-muted-foreground">
-        <PageTitle>
+        <PageTitle sub={<>The full schedule, day by day, with live scores as they play.</>}>
           <TitleAccent>Matches</TitleAccent>
         </PageTitle>
         <p>The schedule appears once fixtures sync. ⚽️</p>
@@ -154,7 +154,7 @@ export default async function MatchesPage() {
       {/* Live scores tick over without a manual reload (60s, paused when hidden). */}
       <AutoRefresh />
 
-      <PageTitle>
+      <PageTitle sub={<>The full schedule, day by day, with live scores as they play.</>}>
         <TitleAccent>Matches</TitleAccent>
       </PageTitle>
 
