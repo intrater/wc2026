@@ -56,7 +56,8 @@ export default async function PayoutsPage() {
         </ul>
         <p className="mt-3 rounded-lg bg-muted/60 p-2.5 text-xs text-muted-foreground">
           Projected from ${(feeCents / 100).toLocaleString("en-US")} × {entrants}{" "}
-          {entrants === 1 ? "entrant" : "entrants"}. Grows as more join; final once picks lock. Exact ties split the prize.
+          {entrants === 1 ? "entrant" : "entrants"}. Grows as more join; final once picks lock.
+          Ties break by underdog points, then upset points; exact ties split the prize.
         </p>
       </section>
     </div>

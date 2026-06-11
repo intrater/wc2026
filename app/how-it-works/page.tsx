@@ -93,6 +93,17 @@ export default function ScoringPage() {
         </Note>
       </Card>
 
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-xl font-bold">Tiebreakers</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Tied on total points? The leaderboard breaks ties by{" "}
+          <strong className="text-foreground">underdog points</strong> — everything earned by your
+          Tier {GOAL_BONUS_MIN_TIER}–12 teams — then by{" "}
+          <strong className="text-foreground">upset points</strong>. Still dead even after that?
+          The prize is split.
+        </p>
+      </section>
+
     </div>
   );
 }
