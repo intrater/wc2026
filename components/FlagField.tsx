@@ -1,11 +1,12 @@
 // Decorative backdrop for the home page: staggered rows of frosted-glass discs
 // scattered across the space between the top of the page and the leaderboard
-// card. Discs don't travel — each one fades in, holds, and dissolves on its own
-// cycle, and comes back wearing a DIFFERENT flag: every disc stacks GLYPHS flag
-// spans whose visibility windows are aligned so the swap happens exactly while
-// the disc is hidden. A mask keeps an open pocket around "THE POOL" headline
-// and dissolves the field before the leaderboard. Styles live in globals.css
-// under "Flag field".
+// card. Discs don't travel — each position stacks GLYPHS complete discs
+// (glass ring + flag as ONE element) that take turns popping in, holding, and
+// dissolving, so the position returns wearing a different flag. One animation
+// per element: a bubble can never appear without its flag, even when iOS
+// Safari throttles animations. A mask keeps an open pocket around "THE POOL"
+// headline and dissolves the field before the leaderboard. Styles live in
+// globals.css under "Flag field".
 import { SEED_TEAMS } from "@/lib/tiers/seed";
 
 const FLAGS = SEED_TEAMS.map((t) => t.flag);
@@ -39,8 +40,6 @@ export function FlagField() {
                 className="flag-chip"
                 style={
                   {
-                    animationDuration: `${duration}s`,
-                    animationDelay: `${delay}s`,
                     "--size-mult": sizeMult,
                     "--jy": `${jitterY}px`,
                     "--jx": `${jitterX}px`,

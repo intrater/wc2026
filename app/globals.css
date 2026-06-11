@@ -341,6 +341,10 @@
   }
 }
 
+/* Layout cell only — visuals and animation live on the glyphs, so a disc and
+   its flag are one element and can never desync (iOS Safari throttles/drops
+   animations under load; with separate bubble + flag animations that showed
+   up as empty bubbles). */
 .flag-chip {
   display: grid;
   place-items: center;
@@ -351,12 +355,24 @@
   margin-top: var(--jy, 0px);
   margin-left: var(--jx, 0px);
   margin-right: 9px;
-  border-radius: 50%;
   font-size: calc(38px * var(--size-mult, 1));
   line-height: 1;
   flex: none;
+}
+
+/* Each glyph IS a complete disc (glass ring + flag). The three stacked glyphs
+   take turns: each one pops in, holds, and dissolves inside its third of the
+   shared cycle, so the position returns wearing the next flag. One animation
+   per element — nothing to drift out of sync. */
+.flag-glyph {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   opacity: 0;
-  animation: flag-pop 12s ease-in-out infinite;
+  animation: 24s ease-in-out infinite;
   filter: saturate(0.85);
   background: linear-gradient(180deg, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0.05));
   border: 1px solid oklch(1 0 0 / 0.14);
@@ -365,36 +381,29 @@
     inset 0 -12px 20px oklch(0 0 0 / 0.12),
     0 6px 18px oklch(0 0 0 / 0.16);
 }
-
-/* Stacked flag glyphs inside each disc: each is visible for one pop cycle of
-   GLYPHS (slot windows below), so the disc returns wearing the next flag.
-   The switch lands exactly on a pop boundary, while the disc is invisible. */
-.flag-glyph {
-  grid-area: 1 / 1;
-  opacity: 0;
-  animation: 24s linear infinite;
-}
 .flag-glyph:nth-child(1) {
-  animation-name: glyph-slot-1;
+  animation-name: glyph-pop-1;
 }
 .flag-glyph:nth-child(2) {
-  animation-name: glyph-slot-2;
+  animation-name: glyph-pop-2;
 }
 .flag-glyph:nth-child(3) {
-  animation-name: glyph-slot-3;
+  animation-name: glyph-pop-3;
 }
-@keyframes glyph-slot-1 {
-  0%, 33.2% { opacity: 1; }
-  33.4%, 100% { opacity: 0; }
+@keyframes glyph-pop-1 {
+  0% { opacity: 0; transform: scale(0.78); }
+  3%, 27% { opacity: 1; transform: scale(1); }
+  31%, 100% { opacity: 0; transform: scale(0.85); }
 }
-@keyframes glyph-slot-2 {
-  0%, 33.2% { opacity: 0; }
-  33.4%, 66.5% { opacity: 1; }
-  66.7%, 100% { opacity: 0; }
+@keyframes glyph-pop-2 {
+  0%, 33.3% { opacity: 0; transform: scale(0.78); }
+  36.3%, 60.3% { opacity: 1; transform: scale(1); }
+  64.3%, 100% { opacity: 0; transform: scale(0.85); }
 }
-@keyframes glyph-slot-3 {
-  0%, 66.5% { opacity: 0; }
-  66.7%, 100% { opacity: 1; }
+@keyframes glyph-pop-3 {
+  0%, 66.6% { opacity: 0; transform: scale(0.78); }
+  69.6%, 93.6% { opacity: 1; transform: scale(1); }
+  97.6%, 100% { opacity: 0; transform: scale(0.85); }
 }
 
 @media (max-width: 640px) {
@@ -419,15 +428,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flag-chip {
-    animation: none;
-    opacity: 1; /* static texture; the field-level mask still fades it */
-  }
   .flag-glyph {
     animation: none; /* base opacity 0 hides slots 2-3... */
   }
   .flag-glyph:first-child {
-    opacity: 1; /* ...and the first flag shows statically */
+    opacity: 1; /* ...and the first disc shows statically */
   }
 }
 
