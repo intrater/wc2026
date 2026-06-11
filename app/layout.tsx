@@ -14,9 +14,11 @@ export const metadata: Metadata = {
 
 // viewportFit: "cover" lets the bottom tab bar pad itself around the iPhone
 // home indicator via env(safe-area-inset-bottom).
+// No themeColor: a static color can't match the drifting mesh gradient, so iOS
+// painted a visibly darker strip behind the status bar. Without it, Safari
+// samples the live page edge and the status bar blends with the gradient.
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#2d2a72",
 };
 
 export default function RootLayout({
