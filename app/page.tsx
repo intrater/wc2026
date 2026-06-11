@@ -8,6 +8,7 @@ import { LockCountdown } from "@/components/LockCountdown";
 import { SharePool } from "@/components/SharePool";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { PageTitle, TitleAccent } from "@/components/PageTitle";
+import { FlagField } from "@/components/FlagField";
 import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
 import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
 import { hookFor } from "@/lib/digest/email";
@@ -36,7 +37,11 @@ export default async function HomePage() {
   const showBoard = phase.phase !== "pre_lock" || hasSubmitted;
 
   return (
-    <div className="space-y-6">
+    // relative z-0 scopes a stacking context so the FlagField backdrop (z -10)
+    // sits behind this page's content but above the body's gradient layers.
+    <div className="relative z-0">
+      <FlagField />
+      <div className="space-y-6">
       <div className="text-center">
         <PageTitle
           sub={
@@ -125,6 +130,7 @@ export default async function HomePage() {
           <SharePool />
         </>
       )}
+      </div>
     </div>
   );
 }
