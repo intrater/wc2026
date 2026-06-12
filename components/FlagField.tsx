@@ -8,6 +8,7 @@
 // headline and dissolves the field before the leaderboard. Styles live in
 // globals.css under "Flag field".
 import { SEED_TEAMS } from "@/lib/tiers/seed";
+import { FlagFieldRemount } from "./FlagFieldRemount";
 
 const FLAGS = SEED_TEAMS.map((t) => t.flag);
 const ROWS = 3;
@@ -19,6 +20,7 @@ const GLYPHS = 3;
 export function FlagField() {
   return (
     <div aria-hidden className="flag-field">
+      <FlagFieldRemount>
       {Array.from({ length: ROWS }).map((_, r) => (
         <div key={r} className="flag-row">
           {Array.from({ length: PER_ROW }).map((_, i) => {
@@ -34,6 +36,9 @@ export function FlagField() {
             const sizeMult = [0.78, 1, 1.18][(n * 5) % 3];
             const jitterY = ((n * 29) % 19) - 9; // -9..9px
             const jitterX = ((n * 11) % 17) - 4; // -4..12px
+            // Slow drift while visible (consumed by the glyph keyframes).
+            const driftX = ((n * 23) % 21) - 10; // -10..10px
+            const driftY = ((n * 31) % 17) - 8; // -8..8px
             return (
               <span
                 key={i}
@@ -43,6 +48,8 @@ export function FlagField() {
                     "--size-mult": sizeMult,
                     "--jy": `${jitterY}px`,
                     "--jx": `${jitterX}px`,
+                    "--dx": `${driftX}px`,
+                    "--dy": `${driftY}px`,
                   } as React.CSSProperties
                 }
               >
@@ -66,6 +73,7 @@ export function FlagField() {
           })}
         </div>
       ))}
+      </FlagFieldRemount>
     </div>
   );
 }

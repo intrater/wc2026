@@ -375,7 +375,14 @@
   height: 100%;
   border-radius: 50%;
   opacity: 0;
-  animation: 24s ease-in-out infinite;
+  /* Explicit longhands (no `animation:` shorthand + later name override —
+     that pattern proved fragile in Safari, where discs stopped looping).
+     Duration/delay come inline per disc; --dx/--dy give each disc a slow
+     drift baked into the keyframes below. */
+  animation-duration: 24s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
   /* no per-glyph filter: saturate() here promoted 144 filtered layers, a real
      cost on phones — the field-level 0.5 opacity already mutes the flags */
   background: linear-gradient(180deg, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0.05));
@@ -394,26 +401,29 @@
 .flag-glyph:nth-child(3) {
   animation-name: glyph-pop-3;
 }
+/* Each slot owns one third of the cycle. Transform keyframes sit only at the
+   window edges, so the disc drifts continuously across its visible window
+   while opacity handles the pop. Drift direction varies per slot. */
 @keyframes glyph-pop-1 {
-  0% { opacity: 0; transform: scale(0.78); }
-  3%, 27% { opacity: 1; transform: scale(1); }
-  31%, 100% { opacity: 0; transform: scale(0.85); }
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.8); }
+  4%, 27% { opacity: 1; }
+  31%, 100% { opacity: 0; transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.88); }
 }
 @keyframes glyph-pop-2 {
-  0%, 33.3% { opacity: 0; transform: scale(0.78); }
-  36.3%, 60.3% { opacity: 1; transform: scale(1); }
-  64.3%, 100% { opacity: 0; transform: scale(0.85); }
+  0%, 33.3% { opacity: 0; transform: translate3d(calc(var(--dx, 0px) * -1), var(--dy, 0px), 0) scale(0.8); }
+  37.3%, 60.3% { opacity: 1; }
+  64.3%, 100% { opacity: 0; transform: translate3d(0, calc(var(--dy, 0px) * -1), 0) scale(0.88); }
 }
 @keyframes glyph-pop-3 {
-  0%, 66.6% { opacity: 0; transform: scale(0.78); }
-  69.6%, 93.6% { opacity: 1; transform: scale(1); }
-  97.6%, 100% { opacity: 0; transform: scale(0.85); }
+  0%, 66.6% { opacity: 0; transform: translate3d(0, var(--dy, 0px), 0) scale(0.8); }
+  70.6%, 93.6% { opacity: 1; }
+  97.6%, 100% { opacity: 0; transform: translate3d(var(--dx, 0px), 0, 0) scale(0.88); }
 }
 /* Mobile-only: one flag per disc, high duty cycle (no rotation slots). */
 @keyframes flag-pop-solo {
-  0%, 100% { opacity: 0; transform: scale(0.78); }
-  9%, 82% { opacity: 1; transform: scale(1); }
-  91% { opacity: 0; transform: scale(0.85); }
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.8); }
+  9%, 82% { opacity: 1; }
+  91%, 100% { opacity: 0; transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.88); }
 }
 
 @media (max-width: 640px) {
