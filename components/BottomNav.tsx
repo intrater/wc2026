@@ -14,24 +14,26 @@ export async function BottomNav() {
   const [user, phase] = await Promise.all([getUser(), getPhase()]);
   let hasEntry = false;
   let entryId: string | null = null;
+  let isViewer = false;
   if (user) {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("entries")
-      .select("id, submitted_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [{ data }, { data: profile }] = await Promise.all([
+      supabase.from("entries").select("id, submitted_at").eq("user_id", user.id).maybeSingle(),
+      supabase.from("profiles").select("is_viewer").eq("user_id", user.id).maybeSingle(),
+    ]);
     hasEntry = !!data?.submitted_at;
     entryId = data?.id ?? null;
+    // Viewers (0007) get the read-only tabs — everything but My Team.
+    isViewer = !hasEntry && !!profile?.is_viewer && phase.isLocked;
   }
 
   const isDev = process.env.NODE_ENV === "development";
-  if (!hasEntry && !isDev) return null;
+  if (!hasEntry && !isViewer && !isDev) return null;
 
   // Latest digest day powers the unread dot on the Digest tab (client compares
   // against the device's last-seen day in localStorage).
   let latestDigestDay: string | null = null;
-  if (hasEntry) {
+  if (hasEntry || isViewer) {
     const supabase = await createClient();
     const { data: latest } = await supabase
       .from("recaps")
@@ -45,7 +47,7 @@ export async function BottomNav() {
   const myTeamHref = phase.isLocked && entryId ? `/entry/${entryId}` : "/pick";
   const items: BottomNavItem[] = [
     { href: "/", label: "Home", icon: "home", active: ["/"] },
-    ...(hasEntry
+    ...(hasEntry || isViewer
       ? ([
           { href: "/matches", label: "Matches", icon: "matches", active: ["/matches"] },
           {
@@ -55,8 +57,10 @@ export async function BottomNav() {
             active: ["/digest"],
             unreadKey: latestDigestDay ?? undefined,
           },
-          { href: myTeamHref, label: "My Team", icon: "team", active: ["/pick", "/entry"] },
         ] satisfies BottomNavItem[])
+      : []),
+    ...(hasEntry
+      ? ([{ href: myTeamHref, label: "My Team", icon: "team", active: ["/pick", "/entry"] }] satisfies BottomNavItem[])
       : []),
     ...(isDev
       ? ([{ href: "/dev-login", label: "Dev", icon: "dev", active: ["/dev-login"] }] satisfies BottomNavItem[])

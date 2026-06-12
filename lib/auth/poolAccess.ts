@@ -1,5 +1,6 @@
 // Post-lock pool access (user decision 2026-06-07): once the tournament is live,
-// pool pages are for entrants (submitted entry) and the admin only. Pre-lock,
+// pool pages are for entrants (submitted entry), viewers (profiles.is_viewer,
+// e.g. a friend co-owning an entry — migration 0007), and the admin. Pre-lock,
 // everything stays public — the homepage is the signup funnel.
 // RLS (migration 0004) enforces the same rule at the data layer; this helper is
 // the page-level mirror so outsiders get a clear destination instead of empty data.
@@ -24,8 +25,8 @@ export async function checkPoolAccess(): Promise<PoolAccess> {
       .eq("user_id", user.id)
       .not("submitted_at", "is", null)
       .maybeSingle(),
-    supabase.from("profiles").select("is_admin").eq("user_id", user.id).maybeSingle(),
+    supabase.from("profiles").select("is_admin, is_viewer").eq("user_id", user.id).maybeSingle(),
   ]);
-  if (entry?.submitted_at || profile?.is_admin) return "ok";
+  if (entry?.submitted_at || profile?.is_admin || profile?.is_viewer) return "ok";
   return "no-entry";
 }
