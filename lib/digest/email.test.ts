@@ -68,8 +68,15 @@ describe("hookFor / digestSubject", () => {
     expect(hookFor(stats({ topGainer: null, topThree: [] }))).toBe("Full results inside");
   });
 
-  it("builds the subject from the day number and hook", () => {
-    expect(digestSubject(stats())).toBe("Day 3 digest: Alice had a day ⚽️");
+  it("builds the subject from the day number, hook, and leader", () => {
+    expect(
+      digestSubject(stats({ upsets: [{ teamName: "Morocco", label: "Upset win (+4)", points: 4 }] })),
+    ).toBe("WC2026 Day 3 digest: Morocco shocker & Alice in 1st place");
+  });
+
+  it("skips the leader clause when the hook already names them", () => {
+    // topGainer Alice is also the leader — no "& Alice in 1st place" dupe.
+    expect(digestSubject(stats())).toBe("WC2026 Day 3 digest: Alice had a day");
   });
 });
 

@@ -17,7 +17,18 @@ export function hookFor(stats: RecapStats): string {
 }
 
 export function digestSubject(stats: RecapStats): string {
-  return `Day ${stats.dayNumber} digest: ${hookFor(stats)} ⚽️`;
+  const leader = stats.topThree[0];
+  // Subject hook skips the point detail (that lives in the body) — e.g.
+  // "WC2026 Day 1 digest: South Korea shocker & Josh Bortnick in 1st place".
+  const hook =
+    stats.upsets.length > 0
+      ? `${stats.upsets[0].teamName} shocker`
+      : stats.topGainer
+        ? `${stats.topGainer} had a day`
+        : "full results inside";
+  // Skip the leader clause when the hook already names them.
+  const tail = leader && !hook.includes(leader) ? ` & ${leader} in 1st place` : "";
+  return `WC2026 Day ${stats.dayNumber} digest: ${hook}${tail}`;
 }
 
 /** "1st", "2nd", "3rd", "11th", "21st"… */
