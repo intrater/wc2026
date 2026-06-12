@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getPhase } from "@/lib/state/phase";
 
 export interface MagicLinkState {
   ok?: boolean;
@@ -26,12 +27,18 @@ export async function sendMagicLink(
   const supabase = await createClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+  // Pre-lock, sign-in is about making picks; once the tournament starts it's
+  // about the leaderboard. (/pick also redirects home post-lock as a backstop
+  // for stale emails.)
+  const { isLocked } = await getPhase();
+  const next = isLocked ? "/" : "/pick";
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       // display_name only matters on first sign-in; harmless on return visits
       data: displayName ? { display_name: displayName } : undefined,
-      emailRedirectTo: `${siteUrl}/auth/confirm?next=/pick`,
+      emailRedirectTo: `${siteUrl}/auth/confirm?next=${next}`,
     },
   });
 

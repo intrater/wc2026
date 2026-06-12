@@ -373,7 +373,8 @@
   border-radius: 50%;
   opacity: 0;
   animation: 24s ease-in-out infinite;
-  filter: saturate(0.85);
+  /* no per-glyph filter: saturate() here promoted 144 filtered layers, a real
+     cost on phones — the field-level 0.5 opacity already mutes the flags */
   background: linear-gradient(180deg, oklch(1 0 0 / 0.12), oklch(1 0 0 / 0.05));
   border: 1px solid oklch(1 0 0 / 0.14);
   box-shadow:
@@ -405,6 +406,12 @@
   69.6%, 93.6% { opacity: 1; transform: scale(1); }
   97.6%, 100% { opacity: 0; transform: scale(0.85); }
 }
+/* Mobile-only: one flag per disc, high duty cycle (no rotation slots). */
+@keyframes flag-pop-solo {
+  0%, 100% { opacity: 0; transform: scale(0.78); }
+  9%, 82% { opacity: 1; transform: scale(1); }
+  91% { opacity: 0; transform: scale(0.85); }
+}
 
 @media (max-width: 640px) {
   .flag-field {
@@ -424,6 +431,20 @@
     height: calc(62px * var(--size-mult, 1));
     margin-right: 7px;
     font-size: calc(29px * var(--size-mult, 1));
+  }
+  /* Perf budget for phones: only the center 8 discs per row exist (the rest
+     sit beyond the viewport anyway but still cost the compositor), and each
+     position shows a single non-rotating flag — 24 animations instead of 144. */
+  .flag-chip:nth-child(-n + 4),
+  .flag-chip:nth-child(n + 13) {
+    display: none;
+  }
+  .flag-glyph {
+    display: none;
+  }
+  .flag-glyph:first-child {
+    display: grid;
+    animation-name: flag-pop-solo;
   }
 }
 

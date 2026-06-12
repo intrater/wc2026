@@ -25,18 +25,9 @@ export default async function PickPage() {
   const locked = !!lockAt && lockAt.getTime() <= Date.now();
   const submitted = !!entry?.submitted_at;
 
-  if (locked) {
-    return (
-      <div className="space-y-4 pt-10 text-center">
-        <div className="text-5xl">🔒</div>
-        <h1 className="text-3xl font-extrabold">Picks are locked</h1>
-        <p className="text-muted-foreground">The tournament has kicked off — entries are final.</p>
-        <Link href="/" className="glow-neon inline-block rounded-xl bg-neon px-5 py-3 font-extrabold uppercase tracking-wide text-neon-foreground">
-          See the leaderboard
-        </Link>
-      </div>
-    );
-  }
+  // Post-lock there is nothing to do here — every sign-in (including stale
+  // magic-link emails that point at next=/pick) lands on the leaderboard.
+  if (locked) redirect("/");
 
   // group tier rows into PickerTier[]
   const byTier = new Map<number, PickerTier>();
