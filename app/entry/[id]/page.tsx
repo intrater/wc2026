@@ -121,7 +121,7 @@ async function TodayAndNext({ teamIds, teamMap }: { teamIds: number[]; teamMap: 
   const { data: matches } = await supabase
     .from("matches")
     .select(
-      "fixture_id, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, decided_by",
+      "fixture_id, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by",
     )
     .or(`home_team_id.in.(${idList}),away_team_id.in.(${idList})`)
     .order("kickoff", { ascending: true });
@@ -149,11 +149,13 @@ async function TodayAndNext({ teamIds, teamMap }: { teamIds: number[]; teamMap: 
     const score =
       state.kind === "final"
         ? `${state.home}–${state.away} FT`
-        : state.kind === "live" || state.kind === "halftime"
-          ? `LIVE ${state.home}–${state.away}`
-          : m.kickoff
-            ? formatKickoffTimeET(m.kickoff)
-            : "TBD";
+        : state.kind === "live"
+          ? `LIVE${state.elapsed != null ? ` ${state.elapsed}′` : ""} ${state.home}–${state.away}`
+          : state.kind === "halftime"
+            ? `HT ${state.home}–${state.away}`
+            : m.kickoff
+              ? formatKickoffTimeET(m.kickoff)
+              : "TBD";
     const us = ourTeams.map((t) => `${t.flag} ${t.name}`).join(" & ");
     return ours.length === 2
       ? `${us} — ${score}`

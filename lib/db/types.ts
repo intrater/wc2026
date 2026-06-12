@@ -74,6 +74,8 @@ export interface Match {
   live_away_goals: number | null;
   ht_home_goals: number | null;
   ht_away_goals: number | null;
+  /** API-Football status.elapsed minute while live (0006); display-only. */
+  live_elapsed: number | null;
 }
 
 export interface Score {

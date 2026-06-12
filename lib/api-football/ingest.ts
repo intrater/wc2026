@@ -110,11 +110,13 @@ export async function runIngest(admin: SupabaseClient): Promise<IngestSummary> {
       row.live_away_goals = liveState.liveAway;
       row.ht_home_goals = liveState.htHome;
       row.ht_away_goals = liveState.htAway;
+      row.live_elapsed = liveState.elapsed;
     } else if (liveState.action === "clear") {
       row.live_home_goals = null;
       row.live_away_goals = null;
       row.ht_home_goals = null;
       row.ht_away_goals = null;
+      row.live_elapsed = null;
     }
     if (!TERMINAL_OR_KNOWN.has(f.fixture.status.short)) {
       console.warn(`[ingest] unknown fixture status "${f.fixture.status.short}" (fixture ${f.fixture.id})`);

@@ -17,6 +17,7 @@ export type CalendarMatch = Pick<
   | "live_away_goals"
   | "ht_home_goals"
   | "ht_away_goals"
+  | "live_elapsed"
   | "decided_by"
   | "updated_at"
 >;
@@ -37,7 +38,9 @@ function StatusBadge({ state, updatedAt }: { state: CardState; updatedAt: string
       const stale = Date.now() - new Date(updatedAt).getTime() > STALE_MS;
       return (
         <span className="flex items-center gap-1.5">
-          <span className={`${base} ${stale ? "bg-muted text-muted-foreground" : "bg-neon/15 text-neon"}`}>● Live</span>
+          <span className={`${base} ${stale ? "bg-muted text-muted-foreground" : "bg-neon/15 text-neon"}`}>
+            ● Live{state.elapsed != null && ` · ${state.elapsed}′`}
+          </span>
           <span className={`text-[10px] ${stale ? "text-destructive" : "text-muted-foreground"}`}>
             updated {formatKickoffTimeET(updatedAt)}
           </span>

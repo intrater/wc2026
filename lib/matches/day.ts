@@ -130,7 +130,7 @@ export function groupByDay<M extends { kickoff: string | null }>(
 export type CardState =
   | { kind: "tbd" }
   | { kind: "upcoming" }
-  | { kind: "live"; home: number; away: number }
+  | { kind: "live"; home: number; away: number; elapsed: number | null }
   | { kind: "halftime"; home: number; away: number }
   | { kind: "paused"; home: number | null; away: number | null }
   | { kind: "final"; home: number; away: number; decidedBy: Match["decided_by"] }
@@ -149,6 +149,7 @@ type CardMatch = Pick<
   | "live_away_goals"
   | "ht_home_goals"
   | "ht_away_goals"
+  | "live_elapsed"
   | "decided_by"
 >;
 
@@ -177,7 +178,12 @@ export function cardStateFor(m: CardMatch): CardState {
     };
   }
   if (isLive(s)) {
-    return { kind: "live", home: m.live_home_goals ?? 0, away: m.live_away_goals ?? 0 };
+    return {
+      kind: "live",
+      home: m.live_home_goals ?? 0,
+      away: m.live_away_goals ?? 0,
+      elapsed: m.live_elapsed,
+    };
   }
   if (isPaused(s)) {
     return { kind: "paused", home: m.live_home_goals, away: m.live_away_goals };

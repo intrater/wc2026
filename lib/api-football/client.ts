@@ -86,7 +86,14 @@ const UPCOMING = new Set<string>(UPCOMING_STATUSES);
  *           or an unknown status string (don't touch data we don't understand)
  */
 export type LiveState =
-  | { action: "set"; liveHome: number; liveAway: number; htHome: number | null; htAway: number | null }
+  | {
+      action: "set";
+      liveHome: number;
+      liveAway: number;
+      htHome: number | null;
+      htAway: number | null;
+      elapsed: number | null;
+    }
   | { action: "clear" }
   | { action: "keep" };
 
@@ -99,6 +106,7 @@ export function deriveLiveState(f: ApiFixture): LiveState {
       liveAway: f.goals.away ?? 0,
       htHome: f.score.halftime?.home ?? null,
       htAway: f.score.halftime?.away ?? null,
+      elapsed: f.fixture.status.elapsed ?? null,
     };
   }
   if (TERMINAL.has(status) || NOT_OCCURRING.has(status) || UPCOMING.has(status)) {

@@ -7,9 +7,10 @@ function fixture(p: {
   halftime?: [number | null, number | null];
   penalty?: [number | null, number | null];
   extratime?: [number | null, number | null];
+  elapsed?: number | null;
 }): ApiFixture {
   return {
-    fixture: { id: 1, date: "2026-06-11T17:00:00Z", status: { short: p.status, elapsed: null } },
+    fixture: { id: 1, date: "2026-06-11T17:00:00Z", status: { short: p.status, elapsed: p.elapsed ?? null } },
     league: { round: "Group Stage - 1" },
     teams: { home: { id: 10, name: "Home" }, away: { id: 20, name: "Away" } },
     goals: { home: p.goals?.[0] ?? null, away: p.goals?.[1] ?? null },
@@ -23,13 +24,14 @@ function fixture(p: {
 }
 
 describe("deriveLiveState", () => {
-  it("1H with goals 2-0 → set live 2-0, no HT yet", () => {
-    expect(deriveLiveState(fixture({ status: "1H", goals: [2, 0] }))).toEqual({
+  it("1H with goals 2-0 → set live 2-0 at 37', no HT yet", () => {
+    expect(deriveLiveState(fixture({ status: "1H", goals: [2, 0], elapsed: 37 }))).toEqual({
       action: "set",
       liveHome: 2,
       liveAway: 0,
       htHome: null,
       htAway: null,
+      elapsed: 37,
     });
   });
 
@@ -39,22 +41,26 @@ describe("deriveLiveState", () => {
   });
 
   it("HT 1-1 → set with halftime score recorded", () => {
-    expect(deriveLiveState(fixture({ status: "HT", goals: [1, 1], halftime: [1, 1] }))).toEqual({
+    expect(
+      deriveLiveState(fixture({ status: "HT", goals: [1, 1], halftime: [1, 1], elapsed: 45 })),
+    ).toEqual({
       action: "set",
       liveHome: 1,
       liveAway: 1,
       htHome: 1,
       htAway: 1,
+      elapsed: 45,
     });
   });
 
-  it("2H 3-1 with HT 1-1 → live 3-1, ht 1-1", () => {
+  it("2H 3-1 with HT 1-1 → live 3-1, ht 1-1; missing elapsed → null", () => {
     expect(deriveLiveState(fixture({ status: "2H", goals: [3, 1], halftime: [1, 1] }))).toEqual({
       action: "set",
       liveHome: 3,
       liveAway: 1,
       htHome: 1,
       htAway: 1,
+      elapsed: null,
     });
   });
 
