@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Match } from "@/lib/db/types";
 import type { TeamInfo } from "@/lib/views/data";
 import { STAGE_LABEL, cardStateFor, formatKickoffTimeET, type CardState } from "@/lib/matches/day";
@@ -145,7 +146,10 @@ export function MatchCard({
   const pointsForTeam = (teamId: number) => viewerPoints.filter((p) => p.teamId === teamId);
 
   return (
-    <div className={`rounded-xl border bg-card p-3 shadow-sm ${highlight ? "border-neon/40" : "border-border"}`}>
+    <Link
+      href={`/match/${match.fixture_id}`}
+      className={`block rounded-xl border bg-card p-3 shadow-sm transition-[border-color,transform] hover:border-neon/50 active:scale-[0.99] ${highlight ? "border-neon/40" : "border-border"}`}
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-sm font-bold tabular-nums">
           {match.kickoff ? formatKickoffTimeET(match.kickoff) : "TBD"}
@@ -206,6 +210,6 @@ export function MatchCard({
           )}
         </div>
       )}
-    </div>
+    </Link>
   );
 }
