@@ -5,10 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { loadTeamMap } from "@/lib/views/data";
 import { TIER_LABELS } from "@/lib/tiers/labels";
 import { getPhase } from "@/lib/state/phase";
-import { businessDayOf, todayBusinessDay, cardStateFor, formatKickoffTimeET, isLive } from "@/lib/matches/day";
+import type { ReactNode } from "react";
+import { businessDayOf, todayBusinessDay, cardStateFor, isLive } from "@/lib/matches/day";
 import { summarizeTeamMatches, type TeamMatchRow, type TeamMatchSummary } from "@/lib/matches/teamSummary";
 import type { TeamInfo } from "@/lib/views/data";
 import { PageTitle } from "@/components/PageTitle";
+import { LocalTime } from "@/components/LocalTime";
 
 export const dynamic = "force-dynamic";
 
@@ -171,11 +173,11 @@ function TeamStatusLine({
     )
     .join(" · ");
 
-  let ahead: string | null = null;
+  let ahead: ReactNode = null;
   if (nextKickoff) {
     ahead =
       businessDayOf(nextKickoff) === today
-        ? `Plays today ${formatKickoffTimeET(nextKickoff)}`
+        ? <>Plays today <LocalTime iso={nextKickoff} /></>
         : `Next ${NEXT_DAY.format(new Date(nextKickoff))}`;
   } else if (played === 0 && !live) {
     ahead = "Yet to play";
@@ -232,13 +234,13 @@ function TodayAndNext({
   );
   if (todays.length === 0 && !next) return null;
 
-  const describe = (m: (typeof rows)[number]) => {
+  const describe = (m: (typeof rows)[number]): ReactNode => {
     const ours = [m.home_team_id, m.away_team_id].filter((id): id is number => id != null && mine.has(id));
     const opp = [m.home_team_id, m.away_team_id].find((id) => id != null && !mine.has(id!));
     const ourTeams = ours.map((id) => teamMap.get(id)).filter(Boolean) as TeamInfo[];
     const oppTeam = opp != null ? teamMap.get(opp) : undefined;
     const state = cardStateFor(m);
-    const score =
+    const score: ReactNode =
       state.kind === "final"
         ? `${state.home}–${state.away} FT`
         : state.kind === "live"
@@ -246,12 +248,14 @@ function TodayAndNext({
           : state.kind === "halftime"
             ? `HT ${state.home}–${state.away}`
             : m.kickoff
-              ? formatKickoffTimeET(m.kickoff)
+              ? <LocalTime iso={m.kickoff} />
               : "TBD";
     const us = ourTeams.map((t) => `${t.flag} ${t.name}`).join(" & ");
-    return ours.length === 2
-      ? `${us} — ${score}`
-      : `${us} ${oppTeam ? `vs ${oppTeam.flag} ${oppTeam.name}` : ""} · ${score}`;
+    return ours.length === 2 ? (
+      <>{us} — {score}</>
+    ) : (
+      <>{us} {oppTeam ? `vs ${oppTeam.flag} ${oppTeam.name}` : ""} · {score}</>
+    );
   };
 
   return (
@@ -261,7 +265,12 @@ function TodayAndNext({
           <span className={`font-bold ${todays.some((m) => isLive(m.status)) ? "text-neon" : "text-muted-foreground"}`}>
             Today:
           </span>{" "}
-          {todays.map((m) => describe(m)).join("  ·  ")}
+          {todays.map((m, i) => (
+            <span key={m.fixture_id}>
+              {i > 0 && "  ·  "}
+              {describe(m)}
+            </span>
+          ))}
         </div>
       )}
       {next?.kickoff && (

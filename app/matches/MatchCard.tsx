@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Match } from "@/lib/db/types";
 import type { TeamInfo } from "@/lib/views/data";
-import { STAGE_LABEL, cardStateFor, formatKickoffTimeET, type CardState } from "@/lib/matches/day";
+import { STAGE_LABEL, cardStateFor, type CardState } from "@/lib/matches/day";
+import { LocalTime } from "@/components/LocalTime";
 
 export type CalendarMatch = Pick<
   Match,
@@ -45,7 +46,7 @@ function StatusBadge({ state, updatedAt }: { state: CardState; updatedAt: string
             ● Live{state.elapsed != null && ` · ${state.elapsed}′`}
           </span>
           <span className={`text-[10px] ${stale ? "text-destructive" : "text-muted-foreground"}`}>
-            updated {formatKickoffTimeET(updatedAt)}
+            updated <LocalTime iso={updatedAt} />
           </span>
         </span>
       );
@@ -154,7 +155,7 @@ export function MatchCard({
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-sm font-bold tabular-nums">
-          {match.kickoff ? formatKickoffTimeET(match.kickoff) : "TBD"}
+          {match.kickoff ? <LocalTime iso={match.kickoff} /> : "TBD"}
         </span>
         <div className="flex items-center gap-2">
           <StatusBadge state={state} updatedAt={match.updated_at} />

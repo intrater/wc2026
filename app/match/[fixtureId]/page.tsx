@@ -7,12 +7,12 @@ import {
   STAGE_LABEL,
   cardStateFor,
   formatBusinessDayLabel,
-  formatKickoffTimeET,
   businessDayOf,
   isLive,
   isTerminal,
 } from "@/lib/matches/day";
 import { AutoRefresh } from "@/components/AutoRefresh";
+import { LocalTime } from "@/components/LocalTime";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Match · World Cup 2026 Pool" };
@@ -160,7 +160,7 @@ export default async function MatchPage({
           ? { home: state.home ?? 0, away: state.away ?? 0 }
           : null;
 
-  const statusLine =
+  const statusLine: React.ReactNode =
     state.kind === "final"
       ? `Final${state.decidedBy === "extra_time" ? " · AET" : state.decidedBy === "penalties" ? " · Pens" : ""}`
       : state.kind === "halftime"
@@ -172,7 +172,7 @@ export default async function MatchPage({
             : state.kind === "tbd"
               ? "Teams TBD"
               : match.kickoff
-                ? `Kicks off ${formatKickoffTimeET(match.kickoff)} ET`
+                ? <>Kicks off <LocalTime iso={match.kickoff} withZone /></>
                 : "Scheduled";
 
   return (
