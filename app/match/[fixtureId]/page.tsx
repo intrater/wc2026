@@ -80,7 +80,7 @@ export default async function MatchPage({
   const { data: match } = await supabase
     .from("matches")
     .select(
-      "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, updated_at",
+      "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, venue_name, venue_city, updated_at",
     )
     .eq("fixture_id", fixtureId)
     .maybeSingle();
@@ -210,6 +210,11 @@ export default async function MatchPage({
           {live && "● "}
           {statusLine}
         </p>
+        {(match.venue_name || match.venue_city) && (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            📍 {[match.venue_name, match.venue_city].filter(Boolean).join(" · ")}
+          </p>
+        )}
       </div>
 
       {/* events */}
