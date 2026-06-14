@@ -6,10 +6,19 @@ import { loadTeamMap } from "@/lib/views/data";
 import { TIER_LABELS } from "@/lib/tiers/labels";
 import { getPhase } from "@/lib/state/phase";
 import { businessDayOf, todayBusinessDay, cardStateFor, formatKickoffTimeET, isLive } from "@/lib/matches/day";
+import { summarizeTeamMatches, type TeamMatchRow, type TeamMatchSummary } from "@/lib/matches/teamSummary";
 import type { TeamInfo } from "@/lib/views/data";
 import { PageTitle } from "@/components/PageTitle";
 
 export const dynamic = "force-dynamic";
+
+// Row shape loaded once for the whole entry page: the summary fields plus the extra
+// goal columns cardStateFor() needs for the Today/Next banner.
+type EntryMatchRow = TeamMatchRow & {
+  fixture_id: number;
+  ht_home_goals: number | null;
+  ht_away_goals: number | null;
+};
 
 export default async function EntryPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await checkPoolAccess();
@@ -57,6 +66,27 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
     ptsByTeam.set(l.team_id, (ptsByTeam.get(l.team_id) ?? 0) + l.points);
   }
 
+  // Once locked, load every fixture involving a picked team — once for the whole page,
+  // shared by the Today/Next banner and the per-team record line. Pre-lock there are no
+  // results worth showing, so we skip the query entirely.
+  const phase = await getPhase();
+  const teamIds = picks.map((p) => p.team_id);
+  let matchRows: EntryMatchRow[] = [];
+  if (phase.isLocked && teamIds.length > 0) {
+    const { data } = await supabase
+      .from("matches")
+      .select(
+        "fixture_id, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, winner_team_id, decided_by",
+      )
+      .or(`home_team_id.in.(${teamIds.join(",")}),away_team_id.in.(${teamIds.join(",")})`)
+      .order("kickoff", { ascending: true });
+    matchRows = data ?? [];
+  }
+  const summaryByTeam = new Map<number, TeamMatchSummary>(
+    teamIds.map((id) => [id, summarizeTeamMatches(id, matchRows)]),
+  );
+  const today = todayBusinessDay();
+
   return (
     <div className="space-y-5">
       <div className="text-center">
@@ -70,7 +100,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      <TodayAndNext teamIds={picks.map((p) => p.team_id)} teamMap={teamMap} />
+      <TodayAndNext rows={matchRows} teamIds={teamIds} teamMap={teamMap} isLocked={phase.isLocked} />
 
       <div className="space-y-2">
         {picks.map((p) => {
@@ -84,6 +114,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
                 <span className="flex-1">
                   <span className="block font-semibold">{team?.name}</span>
                   <span className="text-xs text-muted-foreground"><span className="font-mono text-neon">{String(p.tier_no).padStart(2, "0")}</span> · {TIER_LABELS[p.tier_no]}</span>
+                  <TeamStatusLine summary={summaryByTeam.get(p.team_id)} teamMap={teamMap} today={today} />
                 </span>
                 <span className="text-lg font-extrabold tabular-nums text-neon">{total}</span>
               </div>
@@ -108,25 +139,86 @@ const NEXT_DAY = new Intl.DateTimeFormat("en-US", {
 });
 
 /**
+ * One line under each picked team: the actual scoreline of every match it has played
+ * ("Beat 🇯🇵 Japan 1–0"), a live score while it's on the pitch, and a "today / next"
+ * nudge otherwise. This is the only surface that shows a team which played and *lost*
+ * (the points breakdown lists point-earning events only). Renders nothing pre-lock /
+ * before a team has a fixture.
+ */
+const RESULT_VERB = { W: "Beat", D: "Drew", L: "Lost to" } as const;
+
+function opponentLabel(oppId: number | null, teamMap: Map<number, TeamInfo>): string {
+  const opp = oppId != null ? teamMap.get(oppId) : undefined;
+  return opp ? `${opp.flag} ${opp.name}` : "opponent";
+}
+
+function TeamStatusLine({
+  summary,
+  teamMap,
+  today,
+}: {
+  summary: TeamMatchSummary | undefined;
+  teamMap: Map<number, TeamInfo>;
+  today: string;
+}) {
+  if (!summary) return null;
+  const { results, played, live, nextKickoff } = summary;
+
+  const resultText = results
+    .map(
+      (r) =>
+        `${RESULT_VERB[r.outcome]} ${opponentLabel(r.oppId, teamMap)} ${r.my}–${r.opp}${r.pens ? " (pens)" : ""}`,
+    )
+    .join(" · ");
+
+  let ahead: string | null = null;
+  if (nextKickoff) {
+    ahead =
+      businessDayOf(nextKickoff) === today
+        ? `Plays today ${formatKickoffTimeET(nextKickoff)}`
+        : `Next ${NEXT_DAY.format(new Date(nextKickoff))}`;
+  } else if (played === 0 && !live) {
+    ahead = "Yet to play";
+  }
+
+  if (!resultText && !ahead && !live) return null;
+
+  return (
+    <span className="mt-0.5 block text-xs text-muted-foreground">
+      {resultText}
+      {live && (
+        <>
+          {resultText && " · "}
+          <span className="font-semibold text-neon">
+            ● Live vs {opponentLabel(live.oppId, teamMap)} {live.my}–{live.opp}
+            {live.elapsed != null ? ` ${live.elapsed}′` : ""}
+          </span>
+        </>
+      )}
+      {ahead && !live && <>{resultText && " · "}{ahead}</>}
+    </span>
+  );
+}
+
+/**
  * Which of this entry's teams play today, and the next upcoming fixture (U6) —
  * the "know who to root against" line. Hidden pre-lock (the tournament hasn't
  * started; an owner viewing their own roster pre-lock shouldn't see a stub).
+ * Fixtures are loaded once by the page and shared with the per-team record lines.
  */
-async function TodayAndNext({ teamIds, teamMap }: { teamIds: number[]; teamMap: Map<number, TeamInfo> }) {
-  const phase = await getPhase();
-  if (!phase.isLocked || teamIds.length === 0) return null;
+function TodayAndNext({
+  rows,
+  teamIds,
+  teamMap,
+  isLocked,
+}: {
+  rows: EntryMatchRow[];
+  teamIds: number[];
+  teamMap: Map<number, TeamInfo>;
+  isLocked: boolean;
+}) {
+  if (!isLocked || teamIds.length === 0) return null;
 
-  const supabase = await createClient();
-  const idList = teamIds.join(",");
-  const { data: matches } = await supabase
-    .from("matches")
-    .select(
-      "fixture_id, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by",
-    )
-    .or(`home_team_id.in.(${idList}),away_team_id.in.(${idList})`)
-    .order("kickoff", { ascending: true });
-
-  const rows = matches ?? [];
   const today = todayBusinessDay();
   const mine = new Set(teamIds);
 
