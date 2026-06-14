@@ -92,6 +92,8 @@ export async function runIngest(admin: SupabaseClient): Promise<IngestSummary> {
       stage,
       round_raw: f.league.round,
       kickoff: f.fixture.date,
+      venue_name: f.fixture.venue?.name ?? null,
+      venue_city: f.fixture.venue?.city ?? null,
       home_team_id: homeId,
       away_team_id: awayId,
       status: f.fixture.status.short,

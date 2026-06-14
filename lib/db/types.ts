@@ -76,6 +76,9 @@ export interface Match {
   ht_away_goals: number | null;
   /** API-Football status.elapsed minute while live (0006); display-only. */
   live_elapsed: number | null;
+  /** Venue (0008): stadium name + host city from the fixture; display-only. */
+  venue_name: string | null;
+  venue_city: string | null;
 }
 
 export interface Score {

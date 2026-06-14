@@ -4,7 +4,12 @@ export const WORLD_CUP_LEAGUE_ID = 1;
 export const WORLD_CUP_SEASON = 2026;
 
 export interface ApiFixture {
-  fixture: { id: number; date: string; status: { short: string; elapsed: number | null } };
+  fixture: {
+    id: number;
+    date: string;
+    status: { short: string; elapsed: number | null };
+    venue: { id: number | null; name: string | null; city: string | null };
+  };
   league: { round: string };
   teams: { home: { id: number; name: string }; away: { id: number; name: string } };
   // Current in-progress score during live play; includes ET goals, excludes shootout.

@@ -10,7 +10,12 @@ function fixture(p: {
   elapsed?: number | null;
 }): ApiFixture {
   return {
-    fixture: { id: 1, date: "2026-06-11T17:00:00Z", status: { short: p.status, elapsed: p.elapsed ?? null } },
+    fixture: {
+      id: 1,
+      date: "2026-06-11T17:00:00Z",
+      status: { short: p.status, elapsed: p.elapsed ?? null },
+      venue: { id: 1069, name: "Estadio Azteca", city: "Mexico City" },
+    },
     league: { round: "Group Stage - 1" },
     teams: { home: { id: 10, name: "Home" }, away: { id: 20, name: "Away" } },
     goals: { home: p.goals?.[0] ?? null, away: p.goals?.[1] ?? null },

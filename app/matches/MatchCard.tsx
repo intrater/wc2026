@@ -20,6 +20,8 @@ export type CalendarMatch = Pick<
   | "ht_away_goals"
   | "live_elapsed"
   | "decided_by"
+  | "venue_name"
+  | "venue_city"
   | "updated_at"
 >;
 
@@ -174,6 +176,15 @@ export function MatchCard({
         </div>
         <TeamSide team={away} mine={!!away && myTeamIds.has(away.id)} alignRight />
       </div>
+
+      {(match.venue_name || match.venue_city) && (
+        <div className="mt-2 flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+          <span aria-hidden>📍</span>
+          <span className="truncate">
+            {[match.venue_name, match.venue_city].filter(Boolean).join(" · ")}
+          </span>
+        </div>
+      )}
 
       {highlight && (
         <div className="mt-2 space-y-1 border-t border-border pt-2 text-xs">
