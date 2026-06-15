@@ -339,6 +339,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
           const s = byEntry.get(r.entryId)!;
           const e = s.entries as unknown as { display_name: string; paid: boolean };
           const move = movementFor({ rank: r.rank, total: r.total }, snapByEntry.get(r.entryId));
+          const games = phase.isLocked ? gamesFor(r.entryId) : null;
           return (
             <li key={r.entryId}>
               <Link href={`/entry/${r.entryId}`} className="flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-accent/40 active:bg-accent/60">
@@ -346,15 +347,21 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                 {phase.isLocked && (
                   <span className={`w-7 text-center font-mono font-bold ${r.rank === 1 ? "text-neon" : "text-muted-foreground"}`}>{r.rank}</span>
                 )}
-                <span className="flex min-w-0 flex-1 items-center gap-1.5 font-semibold">
-                  <span className="truncate">{e?.display_name}</span>
-                  {!e?.paid && (
-                    <span className="shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Unpaid
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-center gap-1.5 font-semibold">
+                    <span className="truncate">{e?.display_name}</span>
+                    {!e?.paid && (
+                      <span className="shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Unpaid
+                      </span>
+                    )}
+                  </span>
+                  {games && (
+                    <span className="text-[11px] text-muted-foreground tabular-nums">
+                      {games.played} games played / {games.left} left in this stage
                     </span>
                   )}
                 </span>
-                {phase.isLocked && <GamesPlayed {...gamesFor(r.entryId)} />}
                 <span className="text-right">
                   <span className="block text-lg font-extrabold tabular-nums text-foreground">{s.total}</span>
                   {haveSnapshots && <MovementLine move={move} />}
@@ -380,19 +387,6 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
         </ul>
       )}
     </div>
-  );
-}
-
-/** Group-stage games this entry's teams have played vs. how many remain — context for
- * the points total (more games played = more chances to have scored). */
-function GamesPlayed({ played, left }: { played: number; left: number }) {
-  return (
-    <span className="shrink-0 text-right leading-tight tabular-nums">
-      <span className="block text-xs font-semibold text-foreground">
-        {played} <span className="font-normal text-muted-foreground">played</span>
-      </span>
-      <span className="block text-[10px] text-muted-foreground">{left} left</span>
-    </span>
   );
 }
 
