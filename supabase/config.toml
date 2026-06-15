@@ -164,10 +164,16 @@ jwt_expiry = 604800
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
 # signing_keys_path = "./signing_keys.json"
-# If disabled, the refresh token will never expire.
-enable_refresh_token_rotation = true
-# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
-# Requires enable_refresh_token_rotation = true.
+# Rotation DISABLED (2026-06-15): with it on, the refresh token rotates on every use
+# and Supabase revokes the session whenever it sees a token "reused" — which races
+# routinely on mobile and across multiple tabs, logging players out well before the
+# 1-week token even expires (people reported re-logging-in more often than weekly).
+# Off → the refresh token never rotates and never expires, so a session lasts until
+# the player clears cookies. Acceptable for an invite-only friends' pool. Must be
+# applied to the hosted project (dashboard / Management API) — `supabase config push`
+# is unsafe here (it would also reset prod site_url to the local 127.0.0.1 value).
+enable_refresh_token_rotation = false
+# Only applies when rotation is on; left for reference.
 refresh_token_reuse_interval = 60
 # Allow/disallow new user signups to your project.
 enable_signup = true
