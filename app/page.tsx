@@ -10,7 +10,7 @@ import { AutoRefresh } from "@/components/AutoRefresh";
 import { PageTitle, TitleAccent } from "@/components/PageTitle";
 import { FlagField } from "@/components/FlagField";
 import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
-import { formatBusinessDayLabel, todayBusinessDay } from "@/lib/matches/day";
+import { formatBusinessDayLabel, todayBusinessDay, isTerminal } from "@/lib/matches/day";
 import { hookFor } from "@/lib/digest/email";
 import type { Recap, RecapStats } from "@/lib/db/types";
 
@@ -247,11 +247,15 @@ async function DigestPreview({ supabase }: { supabase: Awaited<ReturnType<typeof
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
   const phase = await getPhase(); // cached per-request
   const today = todayBusinessDay();
-  const [{ data: rows }, { data: snapshots }] = await Promise.all([
+  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: groupMatches }] = await Promise.all([
     supabase
       .from("scores")
       .select("entry_id, total, underdog_total, upset_total, entries(display_name, paid)"),
     supabase.from("daily_standings").select("entry_id, total, rank").eq("business_day", today),
+    // Picks are RLS-gated: all picks are readable once locked, which is also the only
+    // time this column shows — so pre-lock the empty result is fine.
+    supabase.from("picks").select("entry_id, team_id"),
+    supabase.from("matches").select("status, home_team_id, away_team_id").eq("stage", "group"),
   ]);
 
   const scores = rows ?? [];
@@ -273,6 +277,36 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   const snapByEntry = new Map((snapshots ?? []).map((s) => [s.entry_id, { rank: s.rank, total: Number(s.total) }]));
   // Movement is meaningless before games can score — suppress the line pre-lock.
   const haveSnapshots = phase.isLocked && snapByEntry.size > 0;
+
+  // Group-stage games played vs. remaining, per entry — context for a high total
+  // (points scale with how many of your team-games have happened). Counted per team
+  // appearance: a team's 3 group games × 12 picks = 36 total, and a match between two
+  // of your own teams counts twice. Group-stage only for now; revisit once the
+  // knockout bracket is drawn and "games left" depends on who advances.
+  const teamPlayed = new Map<number, number>();
+  const teamTotal = new Map<number, number>();
+  for (const m of groupMatches ?? []) {
+    for (const t of [m.home_team_id, m.away_team_id]) {
+      if (t == null) continue;
+      teamTotal.set(t, (teamTotal.get(t) ?? 0) + 1);
+      if (isTerminal(m.status)) teamPlayed.set(t, (teamPlayed.get(t) ?? 0) + 1);
+    }
+  }
+  const teamsByEntry = new Map<string, number[]>();
+  for (const p of pickRows ?? []) {
+    const list = teamsByEntry.get(p.entry_id) ?? [];
+    list.push(p.team_id);
+    teamsByEntry.set(p.entry_id, list);
+  }
+  const gamesFor = (entryId: string) => {
+    let played = 0;
+    let total = 0;
+    for (const t of teamsByEntry.get(entryId) ?? []) {
+      played += teamPlayed.get(t) ?? 0;
+      total += teamTotal.get(t) ?? 0;
+    }
+    return { played, left: total - played };
+  };
 
   // Pre-lock only: entries that exist but were never submitted (full or partial draft).
   // They aren't scored or in the pool yet, so list them below the board with an
@@ -320,6 +354,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                     </span>
                   )}
                 </span>
+                {phase.isLocked && <GamesPlayed {...gamesFor(r.entryId)} />}
                 <span className="text-right">
                   <span className="block text-lg font-extrabold tabular-nums text-foreground">{s.total}</span>
                   {haveSnapshots && <MovementLine move={move} />}
@@ -345,6 +380,19 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
         </ul>
       )}
     </div>
+  );
+}
+
+/** Group-stage games this entry's teams have played vs. how many remain — context for
+ * the points total (more games played = more chances to have scored). */
+function GamesPlayed({ played, left }: { played: number; left: number }) {
+  return (
+    <span className="shrink-0 text-right leading-tight tabular-nums">
+      <span className="block text-xs font-semibold text-foreground">
+        {played} <span className="font-normal text-muted-foreground">played</span>
+      </span>
+      <span className="block text-[10px] text-muted-foreground">{left} left</span>
+    </span>
   );
 }
 
