@@ -308,6 +308,14 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
     return { played, left: total - played };
   };
 
+  // Points-per-game is a fair normalizer ONLY while the group stage is running: every
+  // entry is converging on the same 36 games, so it just corrects for whose teams played
+  // earlier. It's hidden below a few games (one upset skews a tiny denominator) and once
+  // the group stage ends — through the knockouts a higher total legitimately means more
+  // games (your teams advanced), so per-game would penalize exactly the people doing best.
+  const MIN_GAMES_FOR_PPG = 3;
+  const groupStageOngoing = (groupMatches ?? []).some((m) => !isTerminal(m.status));
+
   // Pre-lock only: entries that exist but were never submitted (full or partial draft).
   // They aren't scored or in the pool yet, so list them below the board with an
   // "Incomplete" tag as a nudge. After lock they're moot — drop them entirely.
@@ -359,6 +367,15 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                   {games && (
                     <span className="text-[11px] text-muted-foreground tabular-nums">
                       {games.played} games played / {games.left} left in this stage
+                      {groupStageOngoing && games.played >= MIN_GAMES_FOR_PPG && (
+                        <>
+                          {" · "}
+                          <span className="font-semibold text-foreground">
+                            {(r.total / games.played).toFixed(1)}
+                          </span>{" "}
+                          pts/game
+                        </>
+                      )}
                     </span>
                   )}
                 </span>
