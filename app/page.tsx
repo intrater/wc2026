@@ -224,8 +224,9 @@ async function DigestPreview({ supabase }: { supabase: Awaited<ReturnType<typeof
           Morning Digest
           <span className="ml-2 font-mono tracking-normal text-foreground">Day {stats.dayNumber}</span>
         </h2>
-        <span className="text-xs font-semibold text-muted-foreground">
-          {formatBusinessDayLabel(recap.business_day)}
+        <span className="flex items-center gap-2 text-muted-foreground">
+          <span className="text-xs font-semibold">{formatBusinessDayLabel(recap.business_day)}</span>
+          <span aria-hidden className="text-base leading-none transition-transform group-hover:translate-x-0.5 group-hover:text-neon">›</span>
         </span>
       </div>
       <div className="px-4 py-3">
@@ -239,9 +240,6 @@ async function DigestPreview({ supabase }: { supabase: Awaited<ReturnType<typeof
             The box score is in: results, movers, upsets, and today&apos;s slate.
           </p>
         )}
-        <p className="mt-2 text-sm font-semibold text-neon transition-transform group-hover:translate-x-0.5">
-          Read the full digest →
-        </p>
       </div>
     </Link>
   );
@@ -278,11 +276,14 @@ async function TodaysMatches({ supabase }: { supabase: Awaited<ReturnType<typeof
           Today&apos;s Matches
           <span className="ml-2 font-mono tracking-normal text-foreground">{rows.length}</span>
         </h2>
-        {anyLive ? (
-          <span className="text-xs font-bold uppercase tracking-wide text-neon">● Live</span>
-        ) : (
-          <span className="text-xs font-semibold text-muted-foreground">{formatBusinessDayLabel(today)}</span>
-        )}
+        <span className="flex items-center gap-2">
+          {anyLive ? (
+            <span className="text-xs font-bold uppercase tracking-wide text-neon">● Live</span>
+          ) : (
+            <span className="text-xs font-semibold text-muted-foreground">{formatBusinessDayLabel(today)}</span>
+          )}
+          <span aria-hidden className="text-base leading-none text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-neon">›</span>
+        </span>
       </div>
       <ul className="divide-y divide-border">
         {rows.map((m) => {
@@ -306,11 +307,6 @@ async function TodaysMatches({ supabase }: { supabase: Awaited<ReturnType<typeof
           );
         })}
       </ul>
-      <div className="px-4 py-2.5">
-        <p className="text-sm font-semibold text-neon transition-transform group-hover:translate-x-0.5">
-          Open the match center →
-        </p>
-      </div>
     </Link>
   );
 }
