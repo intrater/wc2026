@@ -102,7 +102,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
         )}
         <p className="mt-3">
           <Link href="/tiers" className="text-sm font-semibold text-neon hover:underline">
-            View the tier list →
+            Tier list · who picked each team →
           </Link>
         </p>
       </div>
