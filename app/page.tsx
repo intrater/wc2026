@@ -56,6 +56,10 @@ export default async function HomePage() {
                 className="inline-block transition-transform hover:scale-110 active:scale-95"
               >
                 🤔
+              </Link>{" "}
+              ·{" "}
+              <Link href="/tiers" className="font-semibold transition-colors hover:text-neon hover:underline">
+                Tier list
               </Link>
             </>
           }
