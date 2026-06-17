@@ -158,6 +158,18 @@ export function computeGroupPlacement(matches: ScoringMatch[]): GroupPlacement {
   return { winners, runnersUp, bestThirds };
 }
 
+/**
+ * Ordered team ids (1st→last) for each COMPLETE group. Used by the outlook feature to
+ * detect group-stage elimination (a team finishing last can never advance). Incomplete
+ * groups are omitted — their order isn't settled yet.
+ */
+export function orderedGroupStandings(matches: ScoringMatch[]): Map<string, number[]> {
+  const standings = buildStandings(matches.filter((m) => m.isTerminal));
+  const out = new Map<string, number[]>();
+  for (const [group, rows] of standings) out.set(group, rows.map((r) => r.teamId));
+  return out;
+}
+
 // ---------- per-team scoring ----------
 interface TeamLine {
   matchId: number | null;

@@ -11,6 +11,7 @@ import { summarizeTeamMatches, type TeamMatchRow, type TeamMatchSummary } from "
 import type { TeamInfo } from "@/lib/views/data";
 import { PageTitle } from "@/components/PageTitle";
 import { LocalTime } from "@/components/LocalTime";
+import { BUCKET_EMOJI, BUCKET_LABEL } from "@/lib/outlook/rationale";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +43,11 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   }
 
   // picks are RLS-gated: visible to owner always, to everyone after lock
-  const [{ data: picks }, { data: score }, { data: lines }] = await Promise.all([
+  const [{ data: picks }, { data: score }, { data: lines }, { data: outlook }] = await Promise.all([
     supabase.from("picks").select("tier_no, team_id").eq("entry_id", id).order("tier_no"),
     supabase.from("scores").select("total, group_stage_total").eq("entry_id", id).maybeSingle(),
     supabase.from("score_lines").select("team_id, points, label, category").eq("entry_id", id),
+    supabase.from("entry_outlook").select("bucket, clinched, win_share, rationale").eq("entry_id", id).maybeSingle(),
   ]);
 
   if (!picks || picks.length === 0) {
@@ -99,6 +101,26 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
           <p className="mt-2 text-muted-foreground">
             <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts
           </p>
+        )}
+        {outlook && (
+          <div className="mx-auto mt-3 max-w-sm rounded-xl border border-border bg-card p-3 text-sm shadow-sm">
+            <p className="font-bold">
+              {outlook.clinched ? "🔒" : BUCKET_EMOJI[outlook.bucket as string] ?? ""}{" "}
+              <span className={outlook.clinched || outlook.bucket === "front_runner" ? "text-neon" : ""}>
+                {outlook.clinched ? "Clinched" : BUCKET_LABEL[outlook.bucket as string] ?? ""}
+              </span>{" "}
+              <span className="font-normal text-muted-foreground">· chance to win it all</span>
+            </p>
+            {outlook.rationale && (
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{outlook.rationale}</p>
+            )}
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              Rough projection from a Monte Carlo simulation ·{" "}
+              <Link href="/how-its-built" className="text-neon hover:underline">
+                how it works
+              </Link>
+            </p>
+          </div>
         )}
         <p className="mt-3">
           <Link href="/tiers" className="text-sm font-semibold text-neon hover:underline">

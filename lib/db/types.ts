@@ -162,5 +162,16 @@ export interface RecapStats {
   };
 }
 
+/** Per-entry chance-to-win outlook (0009); derived/cached, recomputed by /api/outlook. */
+export interface EntryOutlook {
+  entry_id: string;
+  win_share: number | null; // P(finish 1st); null until modeled. 0 = no_shot, 1 = clinched
+  bucket: string; // exact: no_shot|clinched|in_contention · modeled: long_shot|live|in_hunt|front_runner
+  clinched: boolean;
+  rationale: string | null;
+  sims: number;
+  computed_at: string;
+}
+
 /** Terminal match statuses that are eligible for scoring (Scoring Spec §5.5). */
 export const TERMINAL_STATUSES = ["FT", "AET", "PEN", "AWD", "WO"] as const;

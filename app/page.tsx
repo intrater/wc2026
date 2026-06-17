@@ -14,6 +14,7 @@ import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
 import { formatBusinessDayLabel, todayBusinessDay, businessDayOf, cardStateFor, isLive, isTerminal, type CardState } from "@/lib/matches/day";
 import { loadTeamMap } from "@/lib/views/data";
 import { hookFor } from "@/lib/digest/email";
+import { BUCKET_EMOJI, BUCKET_LABEL } from "@/lib/outlook/rationale";
 import type { Recap, RecapStats } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -341,7 +342,7 @@ function MatchupCenter({ state, kickoff }: { state: CardState; kickoff: string |
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
   const phase = await getPhase(); // cached per-request
   const today = todayBusinessDay();
-  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: groupMatches }] = await Promise.all([
+  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: groupMatches }, { data: outlookRows }] = await Promise.all([
     supabase
       .from("scores")
       .select("entry_id, total, underdog_total, upset_total, entries(display_name, paid)"),
@@ -350,6 +351,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
     // time this column shows — so pre-lock the empty result is fine.
     supabase.from("picks").select("entry_id, team_id"),
     supabase.from("matches").select("status, home_team_id, away_team_id").eq("stage", "group"),
+    supabase.from("entry_outlook").select("entry_id, bucket, clinched"),
   ]);
 
   const scores = rows ?? [];
@@ -410,6 +412,12 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   const MIN_GAMES_FOR_PPG = 3;
   const groupStageOngoing = (groupMatches ?? []).some((m) => !isTerminal(m.status));
 
+  // Exact "chance to win" labels (Phase 1): 💀 no_shot and 🔒 clinched are the only ones we
+  // state as fact; everything else stays unlabeled until the model grades it.
+  const outlookByEntry = new Map(
+    (outlookRows ?? []).map((o) => [o.entry_id, { bucket: o.bucket as string, clinched: o.clinched as boolean }]),
+  );
+
   // Pre-lock only: entries that exist but were never submitted (full or partial draft).
   // They aren't scored or in the pool yet, so list them below the board with an
   // "Incomplete" tag as a nudge. After lock they're moot — drop them entirely.
@@ -442,6 +450,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
           const e = s.entries as unknown as { display_name: string; paid: boolean };
           const move = movementFor({ rank: r.rank, total: r.total }, snapByEntry.get(r.entryId));
           const games = phase.isLocked ? gamesFor(r.entryId) : null;
+          const outlook = outlookByEntry.get(r.entryId);
           return (
             <li key={r.entryId}>
               <Link href={`/entry/${r.entryId}`} className="flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-accent/40 active:bg-accent/60">
@@ -457,6 +466,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                         Unpaid
                       </span>
                     )}
+                    {phase.isLocked && outlook && <OutlookBadge bucket={outlook.bucket} clinched={outlook.clinched} />}
                   </span>
                   {games && (
                     <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -498,6 +508,23 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
         </ul>
       )}
     </div>
+  );
+}
+
+/** Chance-to-win-it-all label: 🔥/💪/🎲/🌱/💀 (or 🔒 Clinched). Neon for the top, muted below. */
+function OutlookBadge({ bucket, clinched }: { bucket: string; clinched: boolean }) {
+  const emoji = clinched ? "🔒" : BUCKET_EMOJI[bucket] ?? "";
+  const label = clinched ? "Clinched" : BUCKET_LABEL[bucket] ?? "";
+  if (!label) return null;
+  const accent = clinched || bucket === "front_runner";
+  return (
+    <span
+      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+        accent ? "bg-neon/15 text-neon" : "border border-border bg-card text-muted-foreground"
+      }`}
+    >
+      {emoji} {label}
+    </span>
   );
 }
 
