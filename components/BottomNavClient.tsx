@@ -32,7 +32,10 @@ export function BottomNavClient({ items }: { items: BottomNavItem[] }) {
 
   return (
     <nav
-      className={`fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] transition-transform duration-300 ease-out motion-reduce:transition-none ${
+      // transform-gpu + will-change keep the bar on its own compositor layer so iOS
+      // Safari doesn't re-rasterize the backdrop-blur at a stale scroll offset (which
+      // made the glassy bar "float" mid-screen during momentum scrolling).
+      className={`fixed inset-x-0 bottom-0 z-20 transform-gpu px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] transition-transform duration-300 ease-out [backface-visibility:hidden] [will-change:transform] motion-reduce:transition-none ${
         hidden ? "translate-y-[150%]" : "translate-y-0"
       }`}
     >
