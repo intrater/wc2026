@@ -29,7 +29,8 @@ export interface RationaleParts {
   winShare: number | null;
   aliveCount: number;
   strongestAlive: { name: string; flag: string } | null;
-  gapToLeader: number; // current leader total minus this entry's total (0 = leading)
+  gapToLeader: number; // current leader total minus this entry's total (0 = at the top)
+  coLeaders: number; // how many entries share the top total (1 = sole leader)
 }
 
 export function buildRationale(p: RationaleParts): string {
@@ -46,9 +47,9 @@ export function buildRationale(p: RationaleParts): string {
   const gap =
     p.gapToLeader > 0
       ? `you trail the lead by ${p.gapToLeader}`
-      : p.gapToLeader < 0
-        ? "you're out front"
-        : "you're level with the lead";
+      : p.coLeaders > 1
+        ? "you're tied for the lead"
+        : "you're out front";
 
   return `${capitalize(chance)}. ${capitalize(alive)}, and ${gap}.`;
 }

@@ -1,5 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { deriveLiveState, deriveResult, type ApiFixture } from "./client";
+import { deriveLiveState, deriveResult, aggregateMatchWinner, type ApiFixture } from "./client";
+
+describe("aggregateMatchWinner", () => {
+  it("averages bookmakers and de-vigs to sum 1, preserving order", () => {
+    const blocks = [
+      { bookmakers: [{ bets: [{ name: "Match Winner", values: [{ value: "Home", odd: "2.0" }, { value: "Draw", odd: "3.0" }, { value: "Away", odd: "4.0" }] }] }] },
+    ];
+    const p = aggregateMatchWinner(blocks)!;
+    expect(p.home + p.draw + p.away).toBeCloseTo(1, 6);
+    expect(p.home).toBeGreaterThan(p.draw);
+    expect(p.draw).toBeGreaterThan(p.away);
+  });
+  it("returns null with no usable Match Winner market", () => {
+    expect(aggregateMatchWinner([])).toBeNull();
+    expect(aggregateMatchWinner([{ bookmakers: [{ bets: [{ name: "Over/Under", values: [] }] }] }])).toBeNull();
+  });
+});
 
 function fixture(p: {
   status: string;

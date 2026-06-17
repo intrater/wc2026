@@ -10,6 +10,7 @@ import { impliedProb } from "./odds";
 
 const RATING_SCALE = 2.0;
 const DRAW_BASE = 0.26;
+const ELO_K = 0.3; // how hard results move predictive strength; modest so the odds prior still leads
 
 /** Fallback strength when a team's odds string is missing/unparseable — decays by tier. */
 function tierFallbackProb(tier: number): number {
@@ -40,6 +41,30 @@ export function buildRatings(
     ratings.set(id, Math.log(Math.max(p, 1e-6)));
   }
   return ratings;
+}
+
+/**
+ * Reprice predictive strength from results so far (Elo-style): a favorite that loses drifts
+ * down, an underdog that wins drifts up. Keeps the odds prior dominant (small K) — its job is
+ * to keep the *future-game* strength honest, since live odds (where available) handle the
+ * imminent ones. Order-dependence over a handful of games is negligible.
+ */
+export function applyResultAdjustments(
+  ratings: Map<number, number>,
+  terminalMatches: { homeTeamId: number; awayTeamId: number; winnerTeamId: number | null }[],
+  k: number = ELO_K,
+): Map<number, number> {
+  const out = new Map(ratings);
+  for (const m of terminalMatches) {
+    const rH = out.get(m.homeTeamId) ?? -6;
+    const rA = out.get(m.awayTeamId) ?? -6;
+    const expectedHome = logistic((rH - rA) / RATING_SCALE);
+    const actualHome = m.winnerTeamId == null ? 0.5 : m.winnerTeamId === m.homeTeamId ? 1 : 0;
+    const delta = k * (actualHome - expectedHome);
+    out.set(m.homeTeamId, rH + delta);
+    out.set(m.awayTeamId, rA - delta);
+  }
+  return out;
 }
 
 export interface MatchProbs {

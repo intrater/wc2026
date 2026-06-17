@@ -29,7 +29,9 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
     admin.from("scores").select("entry_id, total"),
     admin.from("teams").select("id, name, flag, group_label"),
     admin.from("tiers").select("team_id, odds"),
-    admin.from("matches").select("fixture_id, stage, status, group_label, home_team_id, away_team_id, winner_team_id"),
+    admin
+      .from("matches")
+      .select("fixture_id, stage, status, group_label, home_team_id, away_team_id, winner_team_id, odds_home, odds_draw, odds_away"),
   ]);
   for (const res of [scoresRes, teamsRes, tiersRes, matchesRes]) {
     if (res.error) throw new Error(`loadOutlookData: ${res.error.message}`);
@@ -62,11 +64,13 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
           if (id != null) remainingGroupByTeam.set(id, (remainingGroupByTeam.get(id) ?? 0) + 1);
         }
         if (m.home_team_id != null && m.away_team_id != null) {
+          const hasOdds = m.odds_home != null && m.odds_draw != null && m.odds_away != null;
           remainingGroupFixtures.push({
             fixtureId: m.fixture_id,
             groupLabel: m.group_label,
             homeTeamId: m.home_team_id,
             awayTeamId: m.away_team_id,
+            odds: hasOdds ? { pHome: m.odds_home, pDraw: m.odds_draw, pAway: m.odds_away } : undefined,
           });
         }
       }

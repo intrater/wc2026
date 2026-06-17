@@ -26,8 +26,12 @@ export function sampleGroupMatch(
   ratingHome: number,
   ratingAway: number,
   rng: () => number,
+  oddsOverride?: { pHome: number; pDraw: number; pAway: number },
 ): ScoringMatch {
-  const p = groupMatchProbs(ratingHome, ratingAway);
+  // Prefer the live market for this exact fixture; fall back to the strength model.
+  const p = oddsOverride
+    ? { pHome: oddsOverride.pHome, pDraw: oddsOverride.pDraw, pAway: oddsOverride.pAway }
+    : groupMatchProbs(ratingHome, ratingAway);
   const u = rng();
   const outcome: Outcome = u < p.pHome ? "home" : u < p.pHome + p.pDraw ? "draw" : "away";
   const [hg, ag] = scoreline(rng, outcome);

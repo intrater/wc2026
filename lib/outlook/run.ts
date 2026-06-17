@@ -3,7 +3,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { loadOutlookData } from "./loadInput";
 import { computeExactOutlook } from "./bounds";
-import { buildRatings } from "./strength";
+import { buildRatings, applyResultAdjustments } from "./strength";
+import { refreshUpcomingOdds } from "./oddsRefresh";
 import { simulateWinShares } from "./sim/worlds";
 import { bucketForWinShare } from "./bucket";
 import { buildRationale } from "./rationale";
@@ -14,11 +15,22 @@ const SEED = 0x5eed1234; // constant → no run-to-run jitter
 
 export async function runOutlook(
   admin: SupabaseClient,
-): Promise<{ entries: number; sims: number; distribution: Record<string, number> }> {
+): Promise<{ entries: number; sims: number; oddsFetched: number; distribution: Record<string, number> }> {
+  // Best-effort: refresh live odds for imminent games before loading. A market/API hiccup
+  // must not break the rating — we just fall back to the strength model for those fixtures.
+  let oddsFetched = 0;
+  try {
+    oddsFetched = (await refreshUpcomingOdds(admin)).fetched;
+  } catch {
+    /* proceed with whatever odds are already cached */
+  }
+
   const data = await loadOutlookData(admin);
 
   const exactById = new Map(computeExactOutlook(data.entries, data.futureByTeam).map((o) => [o.entryId, o]));
-  const ratings = buildRatings(data.scoring.tierByTeam, data.oddsByTeam);
+  // Strength = odds prior, repriced by results so far (a losing favorite drifts down for the
+  // future games that have no live odds yet).
+  const ratings = applyResultAdjustments(buildRatings(data.scoring.tierByTeam, data.oddsByTeam), data.scoring.matches);
   const winShares = simulateWinShares(
     {
       tierByTeam: data.scoring.tierByTeam,
@@ -33,6 +45,7 @@ export async function runOutlook(
   );
 
   const fieldSize = data.entries.length;
+  const coLeaders = data.entries.filter((e) => e.currentTotal === data.leaderTotal).length;
 
   const rows: OutlookRow[] = data.entries.map((e) => {
     const exact = exactById.get(e.entryId)!;
@@ -76,6 +89,7 @@ export async function runOutlook(
       aliveCount: alive.length,
       strongestAlive: strongest,
       gapToLeader: data.leaderTotal - e.currentTotal,
+      coLeaders,
     });
 
     return { entry_id: e.entryId, bucket, clinched, win_share: winShare, rationale, sims: N_SIMS };
@@ -85,5 +99,5 @@ export async function runOutlook(
 
   const distribution: Record<string, number> = {};
   for (const r of rows) distribution[r.bucket] = (distribution[r.bucket] ?? 0) + 1;
-  return { entries: rows.length, sims: N_SIMS, distribution };
+  return { entries: rows.length, sims: N_SIMS, oddsFetched, distribution };
 }

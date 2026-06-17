@@ -17,6 +17,8 @@ export interface RemainingGroupFixture {
   groupLabel: string | null;
   homeTeamId: number;
   awayTeamId: number;
+  // Live de-vigged 1X2 from the market, when available — overrides strength for this fixture.
+  odds?: { pHome: number; pDraw: number; pAway: number };
 }
 
 export interface SimInput {
@@ -40,7 +42,9 @@ export function simulateWinShares(input: SimInput, nSims: number, seed: number):
     const matches: ScoringMatch[] = [...input.terminalMatches];
 
     for (const f of input.remainingGroupFixtures) {
-      matches.push(sampleGroupMatch(f.fixtureId, f.groupLabel, f.homeTeamId, f.awayTeamId, rate(f.homeTeamId), rate(f.awayTeamId), rng));
+      matches.push(
+        sampleGroupMatch(f.fixtureId, f.groupLabel, f.homeTeamId, f.awayTeamId, rate(f.homeTeamId), rate(f.awayTeamId), rng, f.odds),
+      );
     }
 
     const placement = computeGroupPlacement(matches);

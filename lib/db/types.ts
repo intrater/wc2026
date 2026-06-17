@@ -79,6 +79,11 @@ export interface Match {
   /** Venue (0008): stadium name + host city from the fixture; display-only. */
   venue_name: string | null;
   venue_city: string | null;
+  /** Cached de-vigged Match Winner probabilities (0010); sharpens the outlook sim, never scoring. */
+  odds_home: number | null;
+  odds_draw: number | null;
+  odds_away: number | null;
+  odds_updated_at: string | null;
 }
 
 export interface Score {

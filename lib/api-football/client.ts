@@ -44,6 +44,55 @@ export function getFixtures(): Promise<ApiFixture[]> {
   return apiGet<ApiFixture>(`/fixtures?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`);
 }
 
+// ---------- match-winner odds (for the chance-to-win sim) ----------
+export interface MatchWinnerProbs {
+  home: number;
+  draw: number;
+  away: number;
+} // de-vigged, sum to 1
+
+interface ApiOddsBlock {
+  bookmakers?: { bets?: { name?: string; values?: { value?: string; odd?: string }[] }[] }[];
+}
+
+/**
+ * Average the 1X2 implied probabilities across bookmakers, then de-vig to sum 1. Pure so the
+ * aggregation is unit-testable without a live API. Returns null if no usable Match Winner market.
+ */
+export function aggregateMatchWinner(blocks: ApiOddsBlock[]): MatchWinnerProbs | null {
+  let home = 0;
+  let draw = 0;
+  let away = 0;
+  let n = 0;
+  for (const blk of blocks) {
+    for (const bk of blk.bookmakers ?? []) {
+      for (const bet of bk.bets ?? []) {
+        if (bet.name !== "Match Winner") continue;
+        const m: Record<string, number> = {};
+        for (const v of bet.values ?? []) {
+          const o = Number(v.odd);
+          if (v.value && o > 0) m[v.value] = 1 / o; // decimal odds → implied prob
+        }
+        if (m.Home && m.Draw && m.Away) {
+          home += m.Home;
+          draw += m.Draw;
+          away += m.Away;
+          n++;
+        }
+      }
+    }
+  }
+  if (n === 0) return null;
+  const sum = home + draw + away;
+  return sum > 0 ? { home: home / sum, draw: draw / sum, away: away / sum } : null;
+}
+
+/** Fetch + aggregate the de-vigged Match Winner probabilities for one fixture (null if none). */
+export async function getMatchOdds(fixtureId: number): Promise<MatchWinnerProbs | null> {
+  const blocks = await apiGet<ApiOddsBlock>(`/odds?fixture=${fixtureId}&bet=1`); // bet=1 = Match Winner
+  return aggregateMatchWinner(blocks);
+}
+
 export interface ApiStandingRow {
   group: string;
   team: { id: number; name: string };
