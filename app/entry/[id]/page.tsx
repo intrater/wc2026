@@ -116,7 +116,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
             )}
             <p className="mt-1.5 text-[10px] text-muted-foreground">
               Rough projection from a Monte Carlo simulation ·{" "}
-              <Link href="/how-its-built" className="text-neon hover:underline">
+              <Link href="/how-its-built#chance-to-win" className="text-neon hover:underline">
                 how it works
               </Link>
             </p>

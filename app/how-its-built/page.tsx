@@ -93,6 +93,34 @@ export default function HowItsBuiltPage() {
         </ol>
       </Card>
 
+      <Card title="The chance-to-win rating" id="chance-to-win">
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Each entry gets a 🔥/💪/🎲/🌱 label for its shot at finishing <strong className="text-foreground">1st overall</strong>.
+          It&apos;s a real model, not a vibe. A <strong className="text-foreground">Monte Carlo simulation</strong>{" "}
+          plays out the entire rest of the tournament — every remaining game, group stage through
+          final — <strong className="text-foreground">10,000 times</strong>, scores all 27 entries
+          with the same engine the live board uses, and counts how often each one finishes on top.
+          Your rating is the share of those 10,000 made-up tournaments you win.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Because everyone&apos;s rosters overlap, each simulated tournament is scored for the whole
+          pool at once — so the math knows you and your rivals are often rooting for the same teams.
+          Team strength in the sim is seeded from the pre-tournament betting odds, and the knockout
+          bracket is played out by strength until a champion falls out the bottom.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          The two extremes are exact, not estimated: 💀 <strong className="text-foreground">No shot</strong>{" "}
+          means it&apos;s mathematically impossible to catch the leader, and 🔒{" "}
+          <strong className="text-foreground">Clinched</strong> means first place is already locked.
+          Both are pure arithmetic — never a guess.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          It&apos;s shown as a rough bucket on purpose, never a false-precise percentage. It&apos;s a
+          model built on bookmakers&apos; odds, so treat it as an informed hunch, not a prophecy — and
+          it re-runs as results come in, so the picture sharpens as the field thins out.
+        </p>
+      </Card>
+
       <Card title="Decisions I'd defend">
         <ul className="space-y-2 text-sm text-muted-foreground">
           {[
@@ -120,9 +148,9 @@ export default function HowItsBuiltPage() {
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-xl">
+    <section id={id} className="scroll-mt-20 rounded-2xl border border-border bg-card p-5 shadow-xl">
       <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
         {title}
       </h2>
