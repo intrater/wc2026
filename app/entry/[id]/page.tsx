@@ -100,6 +100,11 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
             <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts
           </p>
         )}
+        <p className="mt-3">
+          <Link href="/tiers" className="text-sm font-semibold text-neon hover:underline">
+            View the tier list →
+          </Link>
+        </p>
       </div>
 
       <TodayAndNext rows={matchRows} teamIds={teamIds} teamMap={teamMap} isLocked={phase.isLocked} />
