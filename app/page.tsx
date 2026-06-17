@@ -9,8 +9,10 @@ import { SharePool } from "@/components/SharePool";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { PageTitle, TitleAccent } from "@/components/PageTitle";
 import { FlagField } from "@/components/FlagField";
+import { LocalTime } from "@/components/LocalTime";
 import { rankWithTies, movementFor } from "@/lib/standings/snapshot";
-import { formatBusinessDayLabel, todayBusinessDay, isTerminal } from "@/lib/matches/day";
+import { formatBusinessDayLabel, todayBusinessDay, businessDayOf, cardStateFor, isLive, isTerminal, type CardState } from "@/lib/matches/day";
+import { loadTeamMap } from "@/lib/views/data";
 import { hookFor } from "@/lib/digest/email";
 import type { Recap, RecapStats } from "@/lib/db/types";
 
@@ -74,6 +76,7 @@ export default async function HomePage() {
           {/* Standings tick over during games without a manual reload. */}
           <AutoRefresh />
           <DigestPreview supabase={supabase} />
+          <TodaysMatches supabase={supabase} />
           <Leaderboard supabase={supabase} />
           {/* One action row, equal-width buttons. Pre-lock: Edit picks (primary) +
               Invite + Venmo-if-owing. Once the tournament is live, editing and
@@ -242,6 +245,97 @@ async function DigestPreview({ supabase }: { supabase: Awaited<ReturnType<typeof
       </div>
     </Link>
   );
+}
+
+/**
+ * A quick "who's playing today" glance between the digest and the leaderboard. Shows
+ * each of today's (ET) matchups with a local-time kickoff or a live/final score; the
+ * whole card taps through to the match center. Renders nothing on days with no matches.
+ */
+async function TodaysMatches({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
+  const { data: matches } = await supabase
+    .from("matches")
+    .select(
+      "fixture_id, status, kickoff, home_team_id, away_team_id, home_goals, away_goals, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by",
+    )
+    .order("kickoff", { ascending: true });
+
+  // "Today" is the ET business day — same definition the calendar and recaps use.
+  const today = todayBusinessDay();
+  const rows = (matches ?? []).filter((m) => m.kickoff && businessDayOf(m.kickoff) === today);
+  if (rows.length === 0) return null;
+
+  const teamMap = await loadTeamMap();
+  const anyLive = rows.some((m) => isLive(m.status));
+
+  return (
+    <Link
+      href="/matches"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-xl transition-[border-color,transform] hover:border-neon/50 active:scale-[0.98]"
+    >
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+          Today&apos;s Matches
+          <span className="ml-2 font-mono tracking-normal text-foreground">{rows.length}</span>
+        </h2>
+        {anyLive ? (
+          <span className="text-xs font-bold uppercase tracking-wide text-neon">● Live</span>
+        ) : (
+          <span className="text-xs font-semibold text-muted-foreground">{formatBusinessDayLabel(today)}</span>
+        )}
+      </div>
+      <ul className="divide-y divide-border">
+        {rows.map((m) => {
+          const home = m.home_team_id ? teamMap.get(m.home_team_id) : undefined;
+          const away = m.away_team_id ? teamMap.get(m.away_team_id) : undefined;
+          const state = cardStateFor(m);
+          return (
+            <li key={m.fixture_id} className="flex items-center gap-2 px-4 py-2 text-sm">
+              <span className="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-right">
+                <span className="truncate font-medium">{home?.name ?? "TBD"}</span>
+                <span className="shrink-0 text-base">{home?.flag ?? "🏳️"}</span>
+              </span>
+              <span className="w-20 shrink-0 text-center">
+                <MatchupCenter state={state} kickoff={m.kickoff} />
+              </span>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                <span className="shrink-0 text-base">{away?.flag ?? "🏳️"}</span>
+                <span className="truncate font-medium">{away?.name ?? "TBD"}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="px-4 py-2.5">
+        <p className="text-sm font-semibold text-neon transition-transform group-hover:translate-x-0.5">
+          Open the match center →
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+/** Center cell for a Today's-Matches row: live/final score, or the local kickoff time. */
+function MatchupCenter({ state, kickoff }: { state: CardState; kickoff: string | null }) {
+  switch (state.kind) {
+    case "live":
+    case "halftime":
+      return <span className="font-extrabold tabular-nums text-neon">{state.home}–{state.away}</span>;
+    case "final":
+      return <span className="font-extrabold tabular-nums">{state.home}–{state.away}</span>;
+    case "paused":
+      return <span className="font-bold tabular-nums text-muted-foreground">{state.home ?? "–"}–{state.away ?? "–"}</span>;
+    case "postponed":
+    case "cancelled":
+    case "abandoned":
+      return <span className="text-xs text-muted-foreground">—</span>;
+    default:
+      return kickoff ? (
+        <LocalTime iso={kickoff} />
+      ) : (
+        <span className="text-xs font-bold uppercase text-muted-foreground">vs</span>
+      );
+  }
 }
 
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
