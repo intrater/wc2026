@@ -105,8 +105,14 @@ export default function HowItsBuiltPage() {
         <p className="mt-3 text-sm text-muted-foreground">
           Because everyone&apos;s rosters overlap, each simulated tournament is scored for the whole
           pool at once — so the math knows you and your rivals are often rooting for the same teams.
-          Team strength in the sim is seeded from the pre-tournament betting odds, and the knockout
-          bracket is played out by strength until a champion falls out the bottom.
+          The knockout bracket is played out by team strength until a champion falls out the bottom.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Team strength isn&apos;t frozen in time. It starts from the pre-tournament betting odds, then{" "}
+          <strong className="text-foreground">reprices as games are played</strong> — a favorite that
+          keeps losing gets downgraded, an underdog on a run gets a bump. And for games kicking off
+          soon, it pulls the <strong className="text-foreground">live betting odds</strong> straight
+          from the bookmakers, so the freshest read of each matchup feeds the sim.
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
           The two extremes are exact, not estimated: 💀 <strong className="text-foreground">No shot</strong>{" "}
