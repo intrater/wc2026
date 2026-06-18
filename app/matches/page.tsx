@@ -104,7 +104,7 @@ export default async function MatchesPage() {
   const { data: matches } = await supabase
     .from("matches")
     .select(
-      "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, venue_name, venue_city, updated_at",
+      "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, venue_name, venue_city, odds_home, odds_away, updated_at",
     )
     .order("kickoff", { ascending: true });
 

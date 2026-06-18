@@ -23,6 +23,8 @@ export type CalendarMatch = Pick<
   | "decided_by"
   | "venue_name"
   | "venue_city"
+  | "odds_home"
+  | "odds_away"
   | "updated_at"
 >;
 
@@ -104,11 +106,33 @@ function CenterCell({ state }: { state: CardState }) {
   }
 }
 
-function TeamSide({ team, mine, alignRight }: { team?: TeamInfo; mine: boolean; alignRight?: boolean }) {
+function TeamSide({
+  team,
+  mine,
+  alignRight,
+  winProb,
+  favored,
+}: {
+  team?: TeamInfo;
+  mine: boolean;
+  alignRight?: boolean;
+  winProb?: number | null; // pre-match win probability to show, or null to hide
+  favored?: boolean; // mark this side as the favorite (★)
+}) {
+  const tier = team?.tier ?? null;
   return (
     <div className={`flex min-w-0 flex-1 items-center gap-2 ${alignRight ? "flex-row-reverse text-right" : ""}`}>
       <span className="text-2xl">{team?.flag ?? "🏳️"}</span>
-      <span className={`truncate font-semibold ${mine ? "text-neon" : ""}`}>{team?.name ?? "TBD"}</span>
+      <span className="min-w-0">
+        <span className={`block truncate font-semibold ${mine ? "text-neon" : ""}`}>{team?.name ?? "TBD"}</span>
+        {(tier != null || winProb != null) && (
+          <span className={`block truncate text-[10px] ${favored ? "font-bold text-foreground" : "text-muted-foreground"}`}>
+            {favored && "★ "}
+            {tier != null ? `Tier ${tier}` : ""}
+            {winProb != null ? `${tier != null ? " · " : ""}${Math.round(winProb * 100)}%` : ""}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
@@ -148,6 +172,27 @@ export function MatchCard({
   // Per-team points the viewer earned in THIS match (final cards only).
   const pointsForTeam = (teamId: number) => viewerPoints.filter((p) => p.teamId === teamId);
 
+  // "Who's favored" — from live odds where we have them, else from the frozen tier (lower =
+  // stronger). Only meaningful before a result; the win % shows for upcoming games only.
+  const oddsHome = match.odds_home == null ? null : Number(match.odds_home);
+  const oddsAway = match.odds_away == null ? null : Number(match.odds_away);
+  const hasOdds = oddsHome != null && oddsAway != null;
+  const decided = ["final", "postponed", "cancelled", "abandoned"].includes(state.kind);
+  const favSide: "home" | "away" | null = decided
+    ? null
+    : hasOdds
+      ? oddsHome! > oddsAway!
+        ? "home"
+        : oddsAway! > oddsHome!
+          ? "away"
+          : null
+      : home?.tier != null && away?.tier != null && home.tier !== away.tier
+        ? home.tier < away.tier
+          ? "home"
+          : "away"
+        : null;
+  const showPct = (state.kind === "upcoming" || state.kind === "tbd") && hasOdds;
+
   return (
     <Link
       href={`/match/${match.fixture_id}`}
@@ -166,7 +211,12 @@ export function MatchCard({
       </div>
 
       <div className="flex items-center gap-3">
-        <TeamSide team={home} mine={!!home && myTeamIds.has(home.id)} />
+        <TeamSide
+          team={home}
+          mine={!!home && myTeamIds.has(home.id)}
+          winProb={showPct ? oddsHome : null}
+          favored={favSide === "home"}
+        />
         <div className="shrink-0 text-center">
           <CenterCell state={state} />
           {(state.kind === "live" || state.kind === "paused") && match.ht_home_goals != null && (
@@ -175,7 +225,13 @@ export function MatchCard({
             </div>
           )}
         </div>
-        <TeamSide team={away} mine={!!away && myTeamIds.has(away.id)} alignRight />
+        <TeamSide
+          team={away}
+          mine={!!away && myTeamIds.has(away.id)}
+          alignRight
+          winProb={showPct ? oddsAway : null}
+          favored={favSide === "away"}
+        />
       </div>
 
       {(match.venue_name || match.venue_city) && (

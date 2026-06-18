@@ -80,22 +80,48 @@ export default async function MatchPage({
   const { data: match } = await supabase
     .from("matches")
     .select(
-      "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, venue_name, venue_city, updated_at",
+      "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, venue_name, venue_city, odds_home, odds_away, updated_at",
     )
     .eq("fixture_id", fixtureId)
     .maybeSingle();
   if (!match) notFound();
 
-  const { data: teams } = await supabase.from("teams").select("id, api_id, name, flag");
+  const [{ data: teams }, { data: tierRows }] = await Promise.all([
+    supabase.from("teams").select("id, api_id, name, flag"),
+    supabase.from("tiers").select("team_id, tier_no"),
+  ]);
   const teamById = new Map((teams ?? []).map((t) => [t.id, t]));
   const teamByApiId = new Map((teams ?? []).filter((t) => t.api_id).map((t) => [t.api_id as number, t]));
+  const tierByTeam = new Map((tierRows ?? []).map((t) => [t.team_id, t.tier_no]));
   const home = match.home_team_id ? teamById.get(match.home_team_id) : undefined;
   const away = match.away_team_id ? teamById.get(match.away_team_id) : undefined;
+  const homeTier = match.home_team_id ? tierByTeam.get(match.home_team_id) ?? null : null;
+  const awayTier = match.away_team_id ? tierByTeam.get(match.away_team_id) ?? null : null;
 
   const state = cardStateFor(match);
   const live = isLive(match.status);
   const terminal = isTerminal(match.status);
   const showDetail = live || terminal || state.kind === "paused";
+
+  // "Who's favored" — live odds where available, else the frozen tier (lower = stronger).
+  const oddsHome = match.odds_home == null ? null : Number(match.odds_home);
+  const oddsAway = match.odds_away == null ? null : Number(match.odds_away);
+  const hasOdds = oddsHome != null && oddsAway != null;
+  const decided = ["final", "postponed", "cancelled", "abandoned"].includes(state.kind);
+  const favSide: "home" | "away" | null = decided
+    ? null
+    : hasOdds
+      ? oddsHome! > oddsAway!
+        ? "home"
+        : oddsAway! > oddsHome!
+          ? "away"
+          : null
+      : homeTier != null && awayTier != null && homeTier !== awayTier
+        ? homeTier < awayTier
+          ? "home"
+          : "away"
+        : null;
+  const showPct = (state.kind === "upcoming" || state.kind === "tbd") && hasOdds;
 
   // Detail data (60s-cached upstream) + pool stakes, fetched together.
   const teamIds = [match.home_team_id, match.away_team_id].filter((id): id is number => id != null);
@@ -189,7 +215,13 @@ export default async function MatchPage({
           {match.kickoff && ` · ${formatBusinessDayLabel(businessDayOf(match.kickoff))}`}
         </p>
         <div className="mt-3 flex items-center justify-center gap-4">
-          <TeamCol flag={home?.flag} name={home?.name} />
+          <TeamCol
+            flag={home?.flag}
+            name={home?.name}
+            tier={homeTier}
+            winProb={showPct ? oddsHome : null}
+            favored={favSide === "home"}
+          />
           <div className="shrink-0">
             {score ? (
               <span className={`text-4xl font-extrabold tabular-nums ${live ? "text-neon" : ""}`}>
@@ -204,7 +236,13 @@ export default async function MatchPage({
               </p>
             )}
           </div>
-          <TeamCol flag={away?.flag} name={away?.name} />
+          <TeamCol
+            flag={away?.flag}
+            name={away?.name}
+            tier={awayTier}
+            winProb={showPct ? oddsAway : null}
+            favored={favSide === "away"}
+          />
         </div>
         <p className={`mt-3 text-sm font-bold ${live ? "text-neon" : "text-muted-foreground"}`}>
           {live && "● "}
@@ -308,11 +346,30 @@ export default async function MatchPage({
   );
 }
 
-function TeamCol({ flag, name }: { flag?: string; name?: string }) {
+function TeamCol({
+  flag,
+  name,
+  tier,
+  winProb,
+  favored,
+}: {
+  flag?: string;
+  name?: string;
+  tier?: number | null;
+  winProb?: number | null;
+  favored?: boolean;
+}) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
       <span className="text-4xl">{flag ?? "🏳️"}</span>
       <span className="truncate text-sm font-bold">{name ?? "TBD"}</span>
+      {(tier != null || winProb != null) && (
+        <span className={`text-[11px] ${favored ? "font-bold text-foreground" : "text-muted-foreground"}`}>
+          {favored && "★ "}
+          {tier != null ? `Tier ${tier}` : ""}
+          {winProb != null ? `${tier != null ? " · " : ""}${Math.round(winProb * 100)}%` : ""}
+        </span>
+      )}
     </div>
   );
 }
