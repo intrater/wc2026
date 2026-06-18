@@ -4,18 +4,21 @@ Everything is on `main` and live in production at **https://wc2026.johnintrater.
 Use this to pick up from a fresh Claude Code session. Good first prompt:
 *"Read HANDOFF.md, then review the codebase to get fully up to speed."*
 
-## Where things stand (updated 2026-06-11, launch day)
+## Where things stand (updated 2026-06-17, mid-group-stage)
 
-- **The pool is live and locked-in**: 27 submitted entries, tiers frozen, picks lock
-  **2026-06-11 12:00 ET** (`settings.lock_at = 16:00 UTC`). At lock the site flips to
-  tournament mode (leaderboard home, rosters public, picks frozen — see `lib/state/phase.ts`
-  and RLS migration `0004_post_lock_privacy.sql`).
-- **Kickoff welcome email**: queued server-side on Resend for **12:05 PM ET today**, one
-  scheduled message per entrant. IDs + recipient list live in the *untracked*
-  `scripts/kickoff-scheduled.json` (see "Untracked scripts" below).
-- **Tournament mode is fully shipped** (plan: `docs/plans/2026-06-07-001-feat-tournament-mode-plan.md`):
-  match calendar with live scores, daily movement on the leaderboard, nightly Claude-written
-  recap, opt-in 7am ET digest email.
+- **The pool is live and in tournament mode**: 27 submitted entries, picks locked
+  **2026-06-11 12:00 ET**, group stage in progress. Site is leaderboard-home, rosters public,
+  picks frozen (`lib/state/phase.ts`, RLS `0004_post_lock_privacy.sql`).
+- **Tournament mode** (plan: `docs/plans/2026-06-07-001-feat-tournament-mode-plan.md`):
+  match calendar with live scores, daily leaderboard movement, nightly Claude recap, opt-in
+  7am ET digest email.
+- **Chance-to-win "outlook" rating is the major post-launch feature** (added 2026-06-17) —
+  has its own section below. Plan: `docs/plans/2026-06-17-001-feat-chance-to-win-plan.md`.
+- **Other post-launch features shipped** (all on `main`, see git log): per-team scorelines on
+  the roster page, match venues, viewer-local match times, leaderboard "games played /
+  pts-per-game", a "Today's Matches" home card, the tier list turned into an ownership board
+  (`/tiers`, who-picked-each-team), and tier + favorite (live-odds win %) on match cards and
+  the match detail view.
 
 ## Live resources
 
@@ -45,7 +48,7 @@ doesn't need it — the service-role key in `.env.local` covers ad-hoc queries v
 ## Verify the setup works
 
 ```bash
-npm run build && npx vitest run     # should compile + 107 tests pass
+npm run build && npx vitest run     # should compile + ~134 tests pass
 ```
 
 ## How the machine runs itself (read before touching prod)
@@ -55,6 +58,9 @@ npm run build && npx vitest run     # should compile + 107 tests pass
   ingest + full score recompute → recap generation (Claude, once the day's last match
   resolves) → digest email blast (first poll after 7am ET, atomic claim so overlapping
   crons can't double-send). See `app/api/poll/route.ts`.
+- **A SECOND Vercel cron hits `/api/outlook` every 10 min** (`vercel.json`, also
+  `CRON_SECRET`) — the chance-to-win recompute (incl. live-odds fetch), deliberately kept off
+  the load-bearing 3-min poll. See the chance-to-win section below.
 - **Scoring is a pure, idempotent recompute** (`lib/scoring/engine.ts`) — full replace of
   `scores` + `score_lines` every ingest. Live scores are display-only columns; only
   terminal results feed scoring.
@@ -65,10 +71,38 @@ npm run build && npx vitest run     # should compile + 107 tests pass
 - **Admin** (`/admin`, gated by `ADMIN_EMAIL`): toggle paid, override results
   (`manual_override` is sticky — ingest skips those fixtures), manual ingest, lock/freeze.
 
+## Chance-to-win "outlook" rating (added 2026-06-17 — read before touching it)
+
+Per-entry 🔥/💪/🎲/🌱/💀 label for **P(finishing 1st overall)**, on each leaderboard row +
+a rationale card on the entry page + explainer at `/how-its-built#chance-to-win`. All logic
+lives in `lib/outlook/*` (pure, unit-tested) and runs from `app/api/outlook/route.ts`.
+
+- **Two layers.** Exact (`bounds.ts`): conservative ceiling/floor arithmetic → 💀 No-shot /
+  🔒 Clinched. Over-estimates by design, so it's *never wrong*, only late (mid-group nobody is
+  eliminated yet → everyone "in contention"; 💀/🔒 start firing as groups finish). Model
+  (`sim/*`): a 10k-run Monte Carlo finishes the tournament from current results and scores
+  ALL entries via the same pure `lib/scoring/engine.ts` per simulated world (so shared-team
+  correlation is free), counting 1st-place finishes → the 5 buckets. Exact overrides the model.
+- **Strength** (`strength.ts`): seeded from championship odds (`tiers.odds`, parsed by
+  `odds.ts`), repriced by results (Elo), and **overridden by live per-match odds** for
+  imminent games. Live odds are fetched by the cron (`oddsRefresh.ts` → `getMatchOdds` in
+  `lib/api-football/client.ts`), cached on `matches.odds_{home,draw,away}` (migration 0010),
+  throttled (≤20 fixtures/run, 3h-stale window, group fixtures within ~4 days only).
+- **Cache table** `entry_outlook` (migration 0009, public-read like `recaps`). Recompute is
+  cheap (~1s incl. odds fetch); the cron runs it unconditionally every 10 min.
+- **Tunables** (in-module constants): `N_SIMS` + `SEED` (`run.ts`), bucket cut-points
+  (`bucket.ts`), `ELO_K` + `RATING_SCALE` (`strength.ts`), `MAX_GOALS_PER_MATCH` (`bounds.ts`).
+  Fixed RNG seed = no run-to-run jitter.
+- **Known approximations / parked:** the knockout sim uses **strength-ordered advancement, not
+  the real FIFA bracket** — switch to real fixtures once API-Football publishes them (~late
+  June). The exact-layer knockout ceiling slightly over-counts (safe). Both flagged in the
+  plan doc; revisit when the knockouts start.
+
 ## Untracked scripts (this machine only — copy manually, do NOT commit)
 
-`scripts/` holds three files that are deliberately untracked because the repo is public
-and `kickoff-scheduled.json` contains entrant email addresses:
+`scripts/` holds files that are deliberately untracked because the repo is public
+and `kickoff-scheduled.json` contains entrant email addresses (only `scripts/seed.ts` is
+tracked; everything below — including `send-digest-sample.mts` — is local-only):
 
 - `scripts/send-kickoff.mts` — kickoff blast tool. Modes: `--test`, `--send`,
   `--schedule`, `--catchup` (immediate send to entrants NOT in the JSON; run once only,
@@ -78,6 +112,8 @@ and `kickoff-scheduled.json` contains entrant email addresses:
   one: `POST https://api.resend.com/emails/{id}/cancel`). Historical after 12:05 ET.
 - `scripts/preview-digest.mts` — renders a full digest email locally (real fixtures +
   entrants, fabricated scores, real Claude call) for tone/format tuning.
+- `scripts/send-digest-sample.mts` — one-time tool (2026-06-12) that emailed the first digest
+  as a sample to non-subscribers. Historical; no embedded secrets, kept untracked anyway.
 
 Run any of them with: `npx tsx --env-file=.env.local scripts/<name>.mts`
 (don't `source .env.local` — a value in it breaks zsh parsing).
@@ -86,8 +122,19 @@ Run any of them with: `npx tsx --env-file=.env.local scripts/<name>.mts`
 
 - **Vercel does NOT auto-deploy from GitHub** — after pushing, deploy with `vercel --prod`.
 - **Two machines, one repo**: start every session with `git pull`.
-- `supabase config push` is authoritative: pushing `config.toml` without the `SMTP_PASS`
-  secret set in Supabase would disable custom SMTP. Prefer the dashboard for Auth email.
+- **⚠️ NEVER run `supabase config push`.** Local `config.toml` carries DEV values
+  (`site_url = http://127.0.0.1:3000`); a push would overwrite prod's redirect URL and **break
+  every magic-link login** — and would also disable custom SMTP without `SMTP_PASS` set. Make
+  Auth/config changes in the Supabase **dashboard** or via the **Management API** (its personal
+  access token is in the macOS keychain — service `Supabase CLI`, base64-wrapped; that's how
+  `jwt_expiry` and refresh-token rotation were changed).
+- **DB migrations** apply with `supabase db push` (NOT config push). History is reconciled
+  through **0010**; 0006/0007 had been applied out-of-band and were `supabase migration repair
+  --status applied` on 2026-06-15. Latest file = `0010_match_odds.sql`; next new one = `0011_*`.
+- **Auth sessions:** `jwt_expiry = 1 week` (the max) and **refresh-token rotation is OFF**
+  (disabled 2026-06-16 via Management API, mirrored in `config.toml`). Rotation races were
+  logging people out before a week was up; off → a session lasts until cookies clear. Don't
+  re-enable rotation unless you want the "I got logged out again" complaints back.
 - **Knockout fixtures aren't published by API-Football yet** (only 72 group matches).
   Re-verify `lib/api-football/rounds.ts` `mapRound` once they appear (~late June);
   unmatched rounds flag `needs_attention` and show an amber banner on `/admin`.
@@ -104,5 +151,8 @@ Run any of them with: `npx tsx --env-file=.env.local scripts/<name>.mts`
 - Late entrant joined pre-lock? Add them to the welcome email with
   `send-kickoff.mts --add <email>` (before 12:05 ET) or `--catchup` (after).
 - Wrong result from the API? Use the `/admin` override (sticky) + recompute.
-- Post-kickoff feature ideas are queued in the plans docs — live provisional points
-  was the top candidate; not yet approved to build.
+- **When the knockout bracket is drawn (~late June):** (1) re-verify `lib/api-football/rounds.ts`
+  `mapRound`, and (2) revisit the chance-to-win sim — switch its strength-ordered knockout
+  advancement to the real published fixtures (see the chance-to-win section).
+- Chance-to-win has small parked tweaks if wanted (all optional, none blocking) — see its
+  section + the plan doc's open-decisions list.
