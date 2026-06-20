@@ -4,6 +4,7 @@ import { runIngest } from "@/lib/api-football/ingest";
 import { ensureDailySnapshot } from "@/lib/standings/snapshot";
 import { maybeGenerateRecap } from "@/lib/recap/generate";
 import { maybeSendDigest } from "@/lib/digest/send";
+import { maybeAlertIntegrity } from "@/lib/monitoring/integrity";
 
 export const dynamic = "force-dynamic";
 // Recap-day passes run ingest + recompute + Claude (+ the morning email blast)
@@ -59,6 +60,14 @@ export async function GET(request: NextRequest) {
     stages.digestEmail = await maybeSendDigest(admin);
   } catch (e) {
     stages.digestEmail = { error: e instanceof Error ? e.message : "digest email failed" };
+  }
+
+  // Standings-integrity audit on the freshly-recomputed state. Emails the admin on a
+  // new issue (throttled); never blocks the poll.
+  try {
+    stages.integrity = await maybeAlertIntegrity(admin);
+  } catch (e) {
+    stages.integrity = { error: e instanceof Error ? e.message : "integrity audit failed" };
   }
 
   return NextResponse.json({ ok: true, ...stages });
