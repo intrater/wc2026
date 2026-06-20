@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFixtures, getStandings, deriveResult, deriveLiveState } from "./client";
-import { mapRound } from "./rounds";
+import { mapRound, parseGroupLabel } from "./rounds";
 import { resolveSeedName } from "./names";
 import { runRecompute } from "@/lib/scoring/persist";
 import {
@@ -60,8 +60,12 @@ export async function runIngest(admin: SupabaseClient): Promise<IngestSummary> {
     // third-placed teams" block). Only derive group_label from real group blocks,
     // or the ranking block clobbers it for whichever teams are currently 3rd.
     const update: Record<string, unknown> = { api_id: row.team.id };
-    if (/^Group\s+/i.test(row.group ?? "")) {
-      update.group_label = row.group!.replace(/^Group\s+/i, "").trim() || null;
+    const groupLabel = parseGroupLabel(row.group);
+    if (groupLabel) {
+      // Only real single-letter group blocks ("Group A"…"Group L") set the label.
+      // The "Group Stage" third-placed-ranking block parses to null and is ignored,
+      // so it can't clobber a team's real group with "Stage".
+      update.group_label = groupLabel;
     }
     await admin.from("teams").update(update).eq("id", ourId);
   }

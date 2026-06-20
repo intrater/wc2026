@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mapRound } from "./rounds";
+import { mapRound, parseGroupLabel } from "./rounds";
 
 describe("mapRound", () => {
   it("maps each 2026 stage, with Final checked after qf/sf/3rd", () => {
@@ -15,5 +15,23 @@ describe("mapRound", () => {
   it("returns null for unknown rounds", () => {
     expect(mapRound("Mystery Round")).toBeNull();
     expect(mapRound(null)).toBeNull();
+  });
+});
+
+describe("parseGroupLabel", () => {
+  it("extracts the letter from a real group block", () => {
+    expect(parseGroupLabel("Group A")).toBe("A");
+    expect(parseGroupLabel("Group L")).toBe("L");
+    expect(parseGroupLabel("group c")).toBe("C"); // case-insensitive, normalized up
+    expect(parseGroupLabel("  Group H  ")).toBe("H"); // tolerates surrounding space
+  });
+
+  it("rejects the third-placed-ranking block so it can't clobber real groups", () => {
+    expect(parseGroupLabel("Group Stage")).toBeNull();
+    expect(parseGroupLabel("Ranking of third-placed teams")).toBeNull();
+    expect(parseGroupLabel("Group AB")).toBeNull(); // only a single letter is a real group
+    expect(parseGroupLabel("")).toBeNull();
+    expect(parseGroupLabel(null)).toBeNull();
+    expect(parseGroupLabel(undefined)).toBeNull();
   });
 });

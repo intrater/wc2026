@@ -18,3 +18,18 @@ export function mapRound(raw: string | null | undefined): MatchStage | null {
   if (r.includes("final")) return "final"; // after qf/sf/3rd checks
   return null;
 }
+
+/**
+ * Extract a real group letter from an API-Football standings `group` string.
+ *
+ * Real group blocks are named "Group A" … "Group L". The cross-group "Ranking of
+ * third-placed teams" block is named "Group Stage", which ALSO starts with "Group " —
+ * so a loose `/^Group /` test wrongly accepts it and clobbers whichever teams are
+ * currently 3rd with the bogus label "Stage". We accept ONLY a single-letter group;
+ * anything else (incl. "Group Stage") returns null so the caller leaves the label alone.
+ */
+export function parseGroupLabel(group: string | null | undefined): string | null {
+  if (!group) return null;
+  const m = /^Group\s+([A-Z])$/i.exec(group.trim());
+  return m ? m[1].toUpperCase() : null;
+}
