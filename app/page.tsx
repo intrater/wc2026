@@ -533,11 +533,10 @@ function MovementLine({ move }: { move: ReturnType<typeof movementFor> }) {
   if (move.isNew) {
     return <span className="block text-[10px] font-semibold text-muted-foreground">NEW</span>;
   }
-  // Points moved today only — no rank-movement glyph. A flat day shows a lone "–".
+  // Points moved today only — no rank-movement glyph. A flat day shows nothing
+  // (a lone "–" reads as a negative sign).
   const pts = move.pointsToday ?? 0;
-  if (pts === 0) {
-    return <span className="block text-[10px] text-muted-foreground">–</span>;
-  }
+  if (pts === 0) return null;
   return (
     <span className="block text-[10px] tabular-nums text-muted-foreground">
       {pts > 0 ? `+${pts}` : pts} today
