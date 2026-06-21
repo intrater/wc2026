@@ -6,7 +6,7 @@ import { loadTeamMap } from "@/lib/views/data";
 import { TIER_LABELS } from "@/lib/tiers/labels";
 import { getPhase } from "@/lib/state/phase";
 import type { ReactNode } from "react";
-import { businessDayOf, todayBusinessDay, cardStateFor, isLive } from "@/lib/matches/day";
+import { businessDayOf, todayBusinessDay, cardStateFor, isLive, isTerminal } from "@/lib/matches/day";
 import { summarizeTeamMatches, type TeamMatchRow, type TeamMatchSummary } from "@/lib/matches/teamSummary";
 import type { TeamInfo } from "@/lib/views/data";
 import { PageTitle } from "@/components/PageTitle";
@@ -46,7 +46,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   const [{ data: picks }, { data: score }, { data: lines }, { data: outlook }] = await Promise.all([
     supabase.from("picks").select("tier_no, team_id").eq("entry_id", id).order("tier_no"),
     supabase.from("scores").select("total, group_stage_total").eq("entry_id", id).maybeSingle(),
-    supabase.from("score_lines").select("team_id, points, label, category").eq("entry_id", id),
+    supabase.from("score_lines").select("team_id, match_id, points, label, category").eq("entry_id", id),
     supabase.from("entry_outlook").select("bucket, clinched, win_share, rationale").eq("entry_id", id).maybeSingle(),
   ]);
 
@@ -62,11 +62,11 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   }
 
   // group lines by team
-  const linesByTeam = new Map<number, { points: number; label: string }[]>();
+  const linesByTeam = new Map<number, { matchId: number | null; points: number; label: string }[]>();
   const ptsByTeam = new Map<number, number>();
   for (const l of lines ?? []) {
     if (!linesByTeam.has(l.team_id)) linesByTeam.set(l.team_id, []);
-    linesByTeam.get(l.team_id)!.push({ points: l.points, label: l.label });
+    linesByTeam.get(l.team_id)!.push({ matchId: l.match_id, points: l.points, label: l.label });
     ptsByTeam.set(l.team_id, (ptsByTeam.get(l.team_id) ?? 0) + l.points);
   }
   // Independently re-add the per-team totals shown below, so the page can prove the
@@ -141,6 +141,19 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
           const team = teamMap.get(p.team_id);
           const teamLines = linesByTeam.get(p.team_id) ?? [];
           const total = ptsByTeam.get(p.team_id) ?? 0;
+          // This team's finished fixtures in kickoff order → game numbers (gm 1, gm 2…),
+          // each tagged with its outcome so a scoreless loss still shows as "gm N: loss (0)".
+          const orderedGames = matchRows
+            .filter((m) => (m.home_team_id === p.team_id || m.away_team_id === p.team_id) && isTerminal(m.status))
+            .map((m) => {
+              const isHome = m.home_team_id === p.team_id;
+              const my = (isHome ? m.home_goals : m.away_goals) ?? 0;
+              const opp = (isHome ? m.away_goals : m.home_goals) ?? 0;
+              const outcome: "W" | "D" | "L" =
+                my > opp ? "W" : my < opp ? "L" : m.decided_by === "penalties" ? (m.winner_team_id === p.team_id ? "W" : "L") : "D";
+              return { fixtureId: m.fixture_id, outcome };
+            });
+          const log = buildGameLog(teamLines, orderedGames);
           return (
             <div key={p.tier_no} className="rounded-xl border border-border bg-card p-3 shadow-sm">
               <div className="flex items-center gap-2">
@@ -152,16 +165,15 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
                 </span>
                 <span className="text-lg font-extrabold tabular-nums text-neon">{total}</span>
               </div>
-              {teamLines.length > 0 ? (
+              {log.items.length > 0 ? (
                 <div className="mt-1 border-t border-border pt-1 text-xs leading-relaxed text-muted-foreground">
-                  {teamLines.map((l, i) => (
+                  {log.items.map((it, i) => (
                     <span key={i}>
-                      {i > 0 && <span className="text-border"> + </span>}
-                      <span className="font-semibold tabular-nums text-foreground">+{l.points}</span>{" "}
-                      {cleanLabel(l.label)}
+                      {i > 0 && <span className="text-border"> · </span>}
+                      {it.label} <span className="font-semibold tabular-nums text-foreground">({it.pts})</span>
                     </span>
                   ))}
-                  {teamLines.length > 1 && (
+                  {log.items.length > 1 && (
                     <span> = <span className="font-semibold tabular-nums text-foreground">{total}</span></span>
                   )}
                 </div>
@@ -202,9 +214,45 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
 }
 
 /** Drop the trailing "(+N)" some engine labels carry (e.g. "Upset draw (+2.5)"),
- *  since the point value is already shown as the "+N" prefix in the breakdown. */
+ *  since the point value is shown separately as "(N)" in the breakdown. */
 function cleanLabel(label: string): string {
   return label.replace(/\s*\(\+?[\d.]+\)\s*$/, "");
+}
+
+const OUTCOME_WORD = { W: "win", D: "draw", L: "loss" } as const;
+
+/**
+ * Turn a team's finished games + point-earning score lines into a game-by-game log:
+ *   "gm 1: win (2) · gm 2: win, 1 goal (3) · won group (3)"
+ * Every played game is listed in order — a game that earned nothing shows its
+ * outcome at (0), so the numbering never skips. Games with multiple point events
+ * list them together. Group-placement bonuses (no match) appear after, unnumbered.
+ */
+function buildGameLog(
+  lines: { matchId: number | null; points: number; label: string }[],
+  orderedGames: { fixtureId: number; outcome: "W" | "D" | "L" }[],
+): { items: { label: string; pts: number }[] } {
+  const byMatch = new Map<number, { points: number; label: string }[]>();
+  const placement: { label: string; pts: number }[] = [];
+  for (const l of lines) {
+    if (l.matchId == null) {
+      placement.push({ label: cleanLabel(l.label).toLowerCase(), pts: l.points });
+      continue;
+    }
+    (byMatch.get(l.matchId) ?? byMatch.set(l.matchId, []).get(l.matchId)!).push({ points: l.points, label: l.label });
+  }
+
+  const items: { label: string; pts: number }[] = [];
+  orderedGames.forEach((g, idx) => {
+    const ls = byMatch.get(g.fixtureId);
+    const parts = ls && ls.length > 0
+      ? ls.map((x) => cleanLabel(x.label).toLowerCase()).join(", ")
+      : OUTCOME_WORD[g.outcome];
+    const pts = (ls ?? []).reduce((s, x) => s + x.points, 0);
+    items.push({ label: `gm ${idx + 1}: ${parts}`, pts });
+  });
+  items.push(...placement);
+  return { items };
 }
 
 const NEXT_DAY = new Intl.DateTimeFormat("en-US", {
