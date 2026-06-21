@@ -533,20 +533,14 @@ function MovementLine({ move }: { move: ReturnType<typeof movementFor> }) {
   if (move.isNew) {
     return <span className="block text-[10px] font-semibold text-muted-foreground">NEW</span>;
   }
-  const delta = move.rankDelta ?? 0;
-  const arrow =
-    delta > 0 ? (
-      <span className="font-bold text-neon">▲{delta}</span>
-    ) : delta < 0 ? (
-      <span className="font-bold text-destructive">▼{Math.abs(delta)}</span>
-    ) : (
-      <span className="text-muted-foreground">–</span>
-    );
+  // Points moved today only — no rank-movement glyph. A flat day shows a lone "–".
   const pts = move.pointsToday ?? 0;
+  if (pts === 0) {
+    return <span className="block text-[10px] text-muted-foreground">–</span>;
+  }
   return (
-    <span className="block text-[10px] tabular-nums">
-      {arrow}
-      <span className="ml-1 text-muted-foreground">{pts > 0 ? `+${pts}` : pts} today</span>
+    <span className="block text-[10px] tabular-nums text-muted-foreground">
+      {pts > 0 ? `+${pts}` : pts} today
     </span>
   );
 }
