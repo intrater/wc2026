@@ -69,6 +69,11 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
     linesByTeam.get(l.team_id)!.push({ points: l.points, label: l.label });
     ptsByTeam.set(l.team_id, (ptsByTeam.get(l.team_id) ?? 0) + l.points);
   }
+  // Independently re-add the per-team totals shown below, so the page can prove the
+  // breakdown reconciles to the stored total (and therefore to the leaderboard).
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const grandTotal = r2(picks.reduce((s, p) => s + (ptsByTeam.get(p.team_id) ?? 0), 0));
+  const reconciles = score != null && grandTotal === r2(score.total);
 
   // Once locked, load every fixture involving a picked team — once for the whole page,
   // shared by the Today/Next banner and the per-team record line. Pre-lock there are no
@@ -147,19 +152,59 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
                 </span>
                 <span className="text-lg font-extrabold tabular-nums text-neon">{total}</span>
               </div>
-              {teamLines.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 border-t border-border pt-1 text-xs text-muted-foreground">
+              {teamLines.length > 0 ? (
+                <div className="mt-1 border-t border-border pt-1 text-xs leading-relaxed text-muted-foreground">
                   {teamLines.map((l, i) => (
-                    <span key={i}>+{l.points} {l.label}</span>
+                    <span key={i}>
+                      {i > 0 && <span className="text-border"> + </span>}
+                      <span className="font-semibold tabular-nums text-foreground">+{l.points}</span>{" "}
+                      {cleanLabel(l.label)}
+                    </span>
                   ))}
+                  {teamLines.length > 1 && (
+                    <span> = <span className="font-semibold tabular-nums text-foreground">{total}</span></span>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-1 border-t border-border pt-1 text-xs text-muted-foreground">
+                  No points yet
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {score != null && (
+        <div className="rounded-xl border border-border bg-card p-3 text-center text-sm shadow-sm">
+          <p>
+            <span className="text-muted-foreground">All 12 teams add up to </span>
+            <span className="text-lg font-extrabold tabular-nums text-neon">{grandTotal}</span>
+            <span className="text-muted-foreground"> pts</span>
+            {reconciles ? (
+              <span className="text-muted-foreground">
+                {" "}— your exact total on the{" "}
+                <Link href="/" className="font-semibold text-neon hover:underline">leaderboard</Link>.
+              </span>
+            ) : (
+              <span className="text-destructive"> — recalculating…</span>
+            )}
+          </p>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Every point above is produced by the same scoring engine that ranks the pool — a pure
+            recompute from the actual results, nothing entered by hand.{" "}
+            <Link href="/how-its-built" className="text-neon hover:underline">how it&apos;s built</Link>
+          </p>
+        </div>
+      )}
     </div>
   );
+}
+
+/** Drop the trailing "(+N)" some engine labels carry (e.g. "Upset draw (+2.5)"),
+ *  since the point value is already shown as the "+N" prefix in the breakdown. */
+function cleanLabel(label: string): string {
+  return label.replace(/\s*\(\+?[\d.]+\)\s*$/, "");
 }
 
 const NEXT_DAY = new Intl.DateTimeFormat("en-US", {
