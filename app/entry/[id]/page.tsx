@@ -173,9 +173,6 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
                       {it.label} <span className="font-semibold tabular-nums text-foreground">({it.pts})</span>
                     </span>
                   ))}
-                  {log.items.length > 1 && (
-                    <span> = <span className="font-semibold tabular-nums text-foreground">{total}</span></span>
-                  )}
                 </div>
               ) : (
                 <div className="mt-1 border-t border-border pt-1 text-xs text-muted-foreground">
