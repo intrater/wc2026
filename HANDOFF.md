@@ -93,10 +93,43 @@ lives in `lib/outlook/*` (pure, unit-tested) and runs from `app/api/outlook/rout
 - **Tunables** (in-module constants): `N_SIMS` + `SEED` (`run.ts`), bucket cut-points
   (`bucket.ts`), `ELO_K` + `RATING_SCALE` (`strength.ts`), `MAX_GOALS_PER_MATCH` (`bounds.ts`).
   Fixed RNG seed = no run-to-run jitter.
-- **Known approximations / parked:** the knockout sim uses **strength-ordered advancement, not
-  the real FIFA bracket** — switch to real fixtures once API-Football publishes them (~late
-  June). The exact-layer knockout ceiling slightly over-counts (safe). Both flagged in the
-  plan doc; revisit when the knockouts start.
+- **Known approximations / parked:** the **live** knockout sim (`lib/outlook/sim/bracket.ts`)
+  still uses **strength-ordered advancement, not the real FIFA bracket**. The real bracket is
+  now **encoded and ready but DORMANT** in `lib/outlook/sim/bracket2026.ts` (imported by
+  nothing; see "Knockout flip-the-switch" below). The exact-layer knockout ceiling slightly
+  over-counts (safe). Both flagged in the plan doc; revisit when the knockouts start.
+
+## Knockout flip-the-switch (runbook — say "flip the switch for the knockouts")
+
+When the group stage ends and API-Football publishes the Round-of-32 fixtures, this is the
+ordered, low-risk procedure to move the chance-to-win sim from its strength-reseed
+approximation to the **real bracket**. The structure is already encoded and verified in
+`lib/outlook/sim/bracket2026.ts` (read its header comment — it has the full plan + the slot
+table for matches 73–104). Nothing imports it yet, so until step 4 the live pool is untouched.
+
+**Preconditions:** all 72 group matches terminal (groups complete) AND the real R32 fixtures
+present in the API. Until then, do nothing — `getFixtures()` returning only 72 fixtures means
+the bracket isn't drawn (as of 2026-06-24 it was still group stage, matchday 3 = NS).
+
+1. **Verify `mapRound`.** Check the exact `league.round` strings the API now returns for the
+   knockout rounds and confirm `lib/api-football/rounds.ts` `mapRound` maps each to the right
+   stage (r32/r16/qf/sf/final/third_place). Unmapped rounds set `needs_attention` → amber
+   banner on `/admin` and the integrity-alert email. Add any new label variants there.
+2. **Validate the encoded bracket.** Derive each group's winner/runner-up from the final
+   standings, call `resolveR32(...)`, and run `validateAgainstFixtures(resolved, realR32)`.
+   Expect `[]` (no mismatches). If not, fix `bracket2026.ts` BEFORE going further — do not
+   proceed on a mismatch.
+3. **Third-place slotting = the real fixtures.** With groups complete the qualifiers are fixed,
+   so the actual R32 matchups ARE the source of truth — no need for FIFA's 495-row combination
+   table. Map each real fixture's third-placed team to its slot from the published fixtures.
+4. **Rewire the sim (the actual switch).** In `lib/outlook/sim/worlds.ts`, replace the
+   `simulateBracket(...)` (strength-reseed) call with playing the fixed `KNOCKOUT_TREE` from
+   the real R32. Keep `bracket.ts` in the tree until this is tested and shipped.
+5. **Prove + ship.** `npx vitest run` + `npm run build`, then `vercel --prod`, then trigger
+   `/api/outlook` (Bearer `CRON_SECRET`) and confirm it recomputes with no `/admin`
+   needs_attention and no integrity-alert email. The standings-integrity monitor
+   (`lib/monitoring/integrity.ts` + `lib/scoring/audit.ts`, runs every poll, emails
+   `ADMIN_EMAIL` on any drift) watches scoring throughout.
 
 ## Untracked scripts (this machine only — copy manually, do NOT commit)
 
@@ -151,8 +184,8 @@ Run any of them with: `npx tsx --env-file=.env.local scripts/<name>.mts`
 - Late entrant joined pre-lock? Add them to the welcome email with
   `send-kickoff.mts --add <email>` (before 12:05 ET) or `--catchup` (after).
 - Wrong result from the API? Use the `/admin` override (sticky) + recompute.
-- **When the knockout bracket is drawn (~late June):** (1) re-verify `lib/api-football/rounds.ts`
-  `mapRound`, and (2) revisit the chance-to-win sim — switch its strength-ordered knockout
-  advancement to the real published fixtures (see the chance-to-win section).
+- **When the knockout bracket is drawn (~late June):** follow the **"Knockout flip-the-switch"**
+  runbook above (verify `mapRound`, validate the encoded bracket against the real fixtures, then
+  rewire the sim). The real bracket is already encoded + tested in `lib/outlook/sim/bracket2026.ts`.
 - Chance-to-win has small parked tweaks if wanted (all optional, none blocking) — see its
   section + the plan doc's open-decisions list.
