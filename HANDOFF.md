@@ -101,31 +101,33 @@ lives in `lib/outlook/*` (pure, unit-tested) and runs from `app/api/outlook/rout
 
 ## Knockout flip-the-switch (runbook — say "flip the switch for the knockouts")
 
-When the group stage ends and API-Football publishes the Round-of-32 fixtures, this is the
-ordered, low-risk procedure to move the chance-to-win sim from its strength-reseed
-approximation to the **real bracket**. The structure is already encoded and verified in
-`lib/outlook/sim/bracket2026.ts` (read its header comment — it has the full plan + the slot
-table for matches 73–104). Nothing imports it yet, so until step 4 the live pool is untouched.
+When the group stage ends, this moves the chance-to-win sim from its strength-reseed
+approximation to the **real bracket**. The structure is encoded, tested, and
+**already validated against live fixtures** in `lib/outlook/sim/bracket2026.ts` (read its
+header). The two functions the flip needs — `assignR32ToSlots()` and `playFixedBracket()` —
+also already exist and are tested. Nothing imports the module yet, so until step 3 the live
+pool is untouched. **The only live files that change are `loadInput.ts` and `worlds.ts`.**
 
-**Preconditions:** all 72 group matches terminal (groups complete) AND the real R32 fixtures
-present in the API. Until then, do nothing — `getFixtures()` returning only 72 fixtures means
-the bracket isn't drawn (as of 2026-06-24 it was still group stage, matchday 3 = NS).
+**Validation status (2026-06-26):** the first 4 published R32 fixtures (incl. a third-place
+slot, Bosnia 3rd-B → match 81) all matched `bracket2026.ts`. Transcription is confirmed.
 
-1. **Verify `mapRound`.** Check the exact `league.round` strings the API now returns for the
-   knockout rounds and confirm `lib/api-football/rounds.ts` `mapRound` maps each to the right
-   stage (r32/r16/qf/sf/final/third_place). Unmapped rounds set `needs_attention` → amber
-   banner on `/admin` and the integrity-alert email. Add any new label variants there.
-2. **Validate the encoded bracket.** Derive each group's winner/runner-up from the final
-   standings, call `resolveR32(...)`, and run `validateAgainstFixtures(resolved, realR32)`.
-   Expect `[]` (no mismatches). If not, fix `bracket2026.ts` BEFORE going further — do not
-   proceed on a mismatch.
-3. **Third-place slotting = the real fixtures.** With groups complete the qualifiers are fixed,
-   so the actual R32 matchups ARE the source of truth — no need for FIFA's 495-row combination
-   table. Map each real fixture's third-placed team to its slot from the published fixtures.
-4. **Rewire the sim (the actual switch).** In `lib/outlook/sim/worlds.ts`, replace the
-   `simulateBracket(...)` (strength-reseed) call with playing the fixed `KNOCKOUT_TREE` from
-   the real R32. Keep `bracket.ts` in the tree until this is tested and shipped.
-5. **Prove + ship.** `npx vitest run` + `npm run build`, then `vercel --prod`, then trigger
+**Preconditions:** all 72 group matches terminal (groups complete) AND all 16 R32 fixtures
+populated with real teams. API-Football fills each R32 tie in as both teams clinch, so the
+set completes shortly after the last group games. As of 2026-06-26: 60/72 group done, 4/16
+R32 published. Do nothing until both gates clear.
+
+1. **Verify `mapRound` for the new rounds.** R32 already confirmed (label `"Round of 32"`,
+   `needs_attention: 0`). When R16/QF/SF/final/3rd-place publish, confirm `rounds.ts`
+   `mapRound` maps each; unmapped rounds set `needs_attention` → `/admin` banner + alert email.
+2. **Validate against the real fixtures.** Build `posOf` (team id → {group, pos}) from the
+   final standings via `orderedGroupStandings`, then `assignR32ToSlots(realR32, posOf)`.
+   **`unmatched` MUST be `[]`** — that both confirms the bracket and produces the ordered ties.
+   Third-place slotting falls out of the real fixtures here; FIFA's 495-row table is NOT needed.
+3. **Flip the sim (the only live change).** In `loadInput.ts` build the R32 ties (step 2) and
+   add them to `SimInput`; in `lib/outlook/sim/worlds.ts`, once groups are complete, call
+   `playFixedBracket(ties, ratings, rng)` instead of `simulateBracket(qualifiers, …)`. Keep
+   `bracket.ts` until this is shipped (it's the fallback while groups are still in progress).
+4. **Prove + ship.** `npx vitest run` + `npm run build`, then `vercel --prod`, then trigger
    `/api/outlook` (Bearer `CRON_SECRET`) and confirm it recomputes with no `/admin`
    needs_attention and no integrity-alert email. The standings-integrity monitor
    (`lib/monitoring/integrity.ts` + `lib/scoring/audit.ts`, runs every poll, emails

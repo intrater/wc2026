@@ -36,6 +36,9 @@
 // Until all three are done and tested, the live sim keeps using bracket.ts.
 // ============================================================================
 
+import type { ScoringMatch } from "@/lib/scoring/engine";
+import { sampleKnockoutMatch } from "./match";
+
 export type Group =
   | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L";
 
@@ -157,4 +160,96 @@ export function validateAgainstFixtures(
     if (!realSet.has(pairKey(tie.home, tie.away))) mismatches.push(tie.match);
   }
   return mismatches;
+}
+
+// ----------------------------------------------------------------------------
+// FLIP-THE-SWITCH HELPERS (still dormant — imported by nothing but the test).
+// At draw time these turn the real R32 fixtures into a playable fixed bracket,
+// sidestepping FIFA's 495-row third-place table entirely: the published fixtures
+// already encode which third went where, so we just read it off.
+// ----------------------------------------------------------------------------
+
+export type Placement = "W" | "RU" | "3rd";
+export interface TeamPos { group: Group; pos: Placement; }
+
+function slotMatches(ref: SlotRef, t: TeamPos): boolean {
+  if (ref.kind === "winner") return t.pos === "W" && ref.group === t.group;
+  if (ref.kind === "runnerUp") return t.pos === "RU" && ref.group === t.group;
+  return t.pos === "3rd" && ref.groups.includes(t.group); // third slot
+}
+
+export interface RealTie { home: number; away: number; } // team ids, either order
+export interface AssignedTie { match: number; home: number; away: number; }
+
+/**
+ * Map the real Round-of-32 fixtures onto our fixed slot tree (matches 73–88) using
+ * each team's group finishing position. Returns the ties in match-number order plus
+ * any fixtures that didn't fit a slot — `unmatched` MUST be empty before flipping
+ * (a non-empty list means either a group isn't complete or a bracket transcription
+ * error). This is also a full validation of bracket2026.ts against reality.
+ */
+export function assignR32ToSlots(
+  realFixtures: RealTie[],
+  posOf: Map<number, TeamPos>,
+): { ties: AssignedTie[]; unmatched: RealTie[] } {
+  const ties: AssignedTie[] = [];
+  const unmatched: RealTie[] = [];
+  const usedSlots = new Set<number>();
+  for (const f of realFixtures) {
+    const h = posOf.get(f.home);
+    const a = posOf.get(f.away);
+    const slot = h && a
+      ? R32_SLOTS.find(
+          (s) => !usedSlots.has(s.match) &&
+            ((slotMatches(s.home, h) && slotMatches(s.away, a)) ||
+             (slotMatches(s.home, a) && slotMatches(s.away, h))),
+        )
+      : undefined;
+    if (!slot || !h) { unmatched.push(f); continue; }
+    usedSlots.add(slot.match);
+    const home = slotMatches(slot.home, h) ? f.home : f.away; // orient home = slot.home
+    const away = home === f.home ? f.away : f.home;
+    ties.push({ match: slot.match, home, away });
+  }
+  ties.sort((x, y) => x.match - y.match);
+  return { ties, unmatched };
+}
+
+/**
+ * Play the REAL fixed bracket for one simulated world: sample each R32 tie, then
+ * advance winners (and the two semifinal losers, for the 3rd-place playoff) through
+ * KNOCKOUT_TREE. Returns the simulated knockout matches in the exact ScoringMatch
+ * shape the engine consumes (synthetic negative fixture ids, like the legacy sim).
+ *
+ * This REPLACES the strength-reseed of bracket.ts once the bracket is set: the slots
+ * are fixed, so only the match outcomes vary world to world. Requires all 16 R32 ties.
+ */
+export function playFixedBracket(
+  r32: AssignedTie[],
+  ratings: Map<number, number>,
+  rng: () => number,
+  sampleMatch: typeof sampleKnockoutMatch = sampleKnockoutMatch,
+): ScoringMatch[] {
+  const rate = (id: number) => ratings.get(id) ?? -99;
+  const out: ScoringMatch[] = [];
+  const winnerBy = new Map<number, number>();
+  const loserBy = new Map<number, number>();
+  let fid = -1;
+
+  const play = (matchNo: number, stage: ScoringMatch["stage"], home: number, away: number) => {
+    const m = sampleMatch(fid--, stage, home, away, rate(home), rate(away), rng);
+    out.push(m);
+    winnerBy.set(matchNo, m.winnerTeamId!);
+    loserBy.set(matchNo, m.winnerTeamId === home ? away : home);
+  };
+
+  for (const tie of r32) play(tie.match, "r32", tie.home, tie.away);
+  for (const node of KNOCKOUT_TREE) {
+    const src = node.losers ? loserBy : winnerBy;
+    const home = src.get(node.from[0]);
+    const away = src.get(node.from[1]);
+    if (home == null || away == null) continue; // partial bracket: skip until feeders exist
+    play(node.match, node.stage, home, away);
+  }
+  return out;
 }
