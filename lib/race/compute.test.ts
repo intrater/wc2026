@@ -23,8 +23,8 @@ function base(): RaceInput {
     teamsStillPlaying: new Set([1, 2, 3, 4]),
     teamMap,
     remainingGroupMatches: [
-      { homeTeamId: 2, awayTeamId: 4, kickoff: "2026-06-26T19:00:00Z" },
-      { homeTeamId: 1, awayTeamId: 3, kickoff: "2026-06-27T19:00:00Z" },
+      { homeTeamId: 2, awayTeamId: 4, kickoff: "2026-06-26T19:00:00Z", pHome: 0.7, pAway: 0.2 }, // Spain (Mike) fav
+      { homeTeamId: 1, awayTeamId: 3, kickoff: "2026-06-27T19:00:00Z", pHome: 0.6, pAway: 0.25 }, // France (Tim) fav
     ],
     leaderPrize: "$405",
     runnerUpPrize: "$270",
@@ -60,6 +60,17 @@ describe("buildRace (group-stage money)", () => {
     const j = base();
     j.teamsStillPlaying = new Set([2, 3, 4]); // France done
     expect(buildRace(j).contenders.find((c) => c.name === "Mike")!.rootAgainst).toEqual([]);
+  });
+
+  it("builds odds-driven scenarios: favored team, win %, and who it lifts", () => {
+    const r = buildRace(base());
+    expect(r.scenarios.length).toBeGreaterThanOrEqual(2);
+    const spain = r.scenarios.find((s) => s.favorite.name === "Spain")!;
+    expect(spain.winPct).toBe(70);
+    expect(spain.lifts).toEqual(["Mike"]); // Mike owns Spain
+    const france = r.scenarios.find((s) => s.favorite.name === "France")!;
+    expect(france.winPct).toBe(60);
+    expect(france.lifts).toEqual(["Tim"]);
   });
 
   it("surfaces prizes, groups-end date, and remaining game count", () => {

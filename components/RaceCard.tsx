@@ -51,6 +51,30 @@ function ContenderRow({ c, data }: { c: RaceContender; data: RaceData }) {
   );
 }
 
+/** Odds-driven "if the likely result happens, these contenders gain" lines. */
+function Scenarios({ scenarios, limit }: { scenarios: RaceData["scenarios"]; limit: number }) {
+  const shown = scenarios.slice(0, limit);
+  if (shown.length === 0) return null;
+  return (
+    <div className="border-t border-border px-4 py-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        📊 Likely scenarios <span className="font-normal normal-case">(per betting odds)</span>
+      </div>
+      <ul className="mt-1.5 space-y-1 text-xs">
+        {shown.map((s) => (
+          <li key={s.favorite.id}>
+            <span title={s.favorite.name}>{s.favorite.flag}</span>{" "}
+            <span className="font-semibold">beat</span>{" "}
+            <span title={s.underdog.name}>{s.underdog.flag}</span>{" "}
+            <span className="text-muted-foreground">({s.winPct}%)</span> →{" "}
+            <span className="text-foreground">lifts {s.lifts.join(", ")}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * "The Race" — the group-stage money race: standings + who each contender is rooting
  * for and against. `full` renders all contenders (the /race page); else top few + link.
@@ -79,6 +103,8 @@ export function RaceCard({ data, full = false }: { data: RaceData; full?: boolea
           <ContenderRow key={c.entryId} c={c} data={data} />
         ))}
       </ol>
+
+      <Scenarios scenarios={data.scenarios} limit={full ? 4 : 2} />
 
       {!full && data.contenders.length > shown.length && (
         <Link

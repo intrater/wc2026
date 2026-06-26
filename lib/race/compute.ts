@@ -25,11 +25,21 @@ export interface RaceContender {
   rootAgainst: (RaceTeam & { owner: string })[]; // a leader's team they don't share, still playing
 }
 
+/** An odds-driven "if this likely result happens, these contenders gain" scenario. */
+export interface RaceScenario {
+  favorite: RaceTeam;
+  underdog: RaceTeam;
+  winPct: number; // favorite's de-vigged win probability, 0–100
+  kickoffISO: string | null;
+  lifts: string[]; // first names of contenders who own the favorite, by rank
+}
+
 export interface RaceData {
   leaderPrize: string; // e.g. "$405"
   runnerUpPrize: string; // e.g. "$270"
   moneyLine: number; // points of the entry currently 2nd — the cutoff to be in the money
   contenders: RaceContender[]; // all entries, by rank
+  scenarios: RaceScenario[]; // most consequential likely results, by odds
   groupsEndISO: string | null;
   remainingGames: number;
 }
@@ -39,10 +49,20 @@ export interface RaceInput {
   picksByEntry: Map<string, number[]>;
   teamsStillPlaying: Set<number>;
   teamMap: Map<number, { name: string; flag: string; tier: number | null }>;
-  remainingGroupMatches: { homeTeamId: number; awayTeamId: number; kickoff: string | null }[];
+  /** pHome/pAway are de-vigged win probabilities (0–1) when the market has them. */
+  remainingGroupMatches: {
+    homeTeamId: number;
+    awayTeamId: number;
+    kickoff: string | null;
+    pHome?: number;
+    pAway?: number;
+  }[];
   leaderPrize: string;
   runnerUpPrize: string;
 }
+
+const firstName = (full: string) => full.split(" ")[0];
+const MAX_LIFTS = 3;
 
 const MAX_FOR = 5;
 const MAX_AGAINST = 4;
@@ -66,15 +86,15 @@ export function buildRace(input: RaceInput): RaceData {
   // Money line = the 2nd-place points total (the cutoff to be in the top-2 prizes).
   const moneyLine = sorted[1]?.points ?? sorted[0]?.points ?? 0;
 
-  // Highest-ranked owner of each team (for the "(Mike's)" attribution in the data).
-  const ownerByTeam = new Map<number, { name: string; rank: number }>();
+  // All owners of each team, in rank order (sorted is points-desc = rank-asc).
+  const ownersByTeam = new Map<number, { name: string; rank: number }[]>();
   for (const e of sorted) {
     const rank = rankByEntry.get(e.entryId)!;
     for (const t of picksByEntry.get(e.entryId) ?? []) {
-      const cur = ownerByTeam.get(t);
-      if (!cur || rank < cur.rank) ownerByTeam.set(t, { name: e.name, rank });
+      (ownersByTeam.get(t) ?? ownersByTeam.set(t, []).get(t)!).push({ name: e.name, rank });
     }
   }
+  const ownerByTeam = (id: number) => ownersByTeam.get(id)?.[0]; // highest-ranked owner
 
   const contenders: RaceContender[] = sorted.map((e) => {
     const rank = rankByEntry.get(e.entryId)!;
@@ -94,7 +114,7 @@ export function buildRace(input: RaceInput): RaceData {
       }
     }
     const rootAgainst = [...againstIds]
-      .map((t) => ({ ...team(t), owner: ownerByTeam.get(t)?.name ?? "" }))
+      .map((t) => ({ ...team(t), owner: ownerByTeam(t)?.name ?? "" }))
       .slice(0, MAX_AGAINST);
 
     return {
@@ -109,11 +129,36 @@ export function buildRace(input: RaceInput): RaceData {
     };
   });
 
+  // Likely scenarios: for each remaining game with odds, the favored team and the
+  // contenders who gain if it wins. Rank by how high up the table the top beneficiary
+  // sits (most consequential to the money first), then by likelihood.
+  const scenarios: RaceScenario[] = remainingGroupMatches
+    .filter((m) => m.pHome != null && m.pAway != null)
+    .map((m) => {
+      const homeFav = (m.pHome ?? 0) >= (m.pAway ?? 0);
+      const favId = homeFav ? m.homeTeamId : m.awayTeamId;
+      const dogId = homeFav ? m.awayTeamId : m.homeTeamId;
+      const owners = ownersByTeam.get(favId) ?? [];
+      return {
+        favorite: team(favId),
+        underdog: team(dogId),
+        winPct: Math.round((homeFav ? m.pHome! : m.pAway!) * 100),
+        kickoffISO: m.kickoff,
+        lifts: owners.slice(0, MAX_LIFTS).map((o) => firstName(o.name)),
+        bestRank: owners[0]?.rank ?? Infinity,
+      };
+    })
+    .filter((s) => s.lifts.length > 0 && s.winPct >= 45) // genuine favorites only — keep it "likely"
+    .sort((a, b) => a.bestRank - b.bestRank || b.winPct - a.winPct)
+    .slice(0, 4)
+    .map(({ bestRank: _drop, ...s }) => s);
+
   return {
     leaderPrize: input.leaderPrize,
     runnerUpPrize: input.runnerUpPrize,
     moneyLine,
     contenders,
+    scenarios,
     groupsEndISO:
       remainingGroupMatches.map((m) => m.kickoff).filter((k): k is string => !!k).sort().at(-1) ?? null,
     remainingGames: remainingGroupMatches.length,

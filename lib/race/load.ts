@@ -15,7 +15,7 @@ export async function loadRaceData(): Promise<RaceData | null> {
     await Promise.all([
       supabase.from("scores").select("entry_id, group_stage_total, entries(display_name)"),
       supabase.from("picks").select("entry_id, team_id"),
-      supabase.from("matches").select("status, home_team_id, away_team_id, kickoff").eq("stage", "group"),
+      supabase.from("matches").select("status, home_team_id, away_team_id, kickoff, odds_home, odds_away").eq("stage", "group"),
       supabase.from("settings").select("entry_fee_cents, payout_split").single(),
       supabase.from("entries").select("id", { count: "exact", head: true }).eq("paid", true).not("submitted_at", "is", null),
       loadTeamMap(),
@@ -24,12 +24,24 @@ export async function loadRaceData(): Promise<RaceData | null> {
   if (!scores || scores.length === 0) return null;
 
   const teamsStillPlaying = new Set<number>();
-  const remainingGroupMatches: { homeTeamId: number; awayTeamId: number; kickoff: string | null }[] = [];
+  const remainingGroupMatches: {
+    homeTeamId: number;
+    awayTeamId: number;
+    kickoff: string | null;
+    pHome?: number;
+    pAway?: number;
+  }[] = [];
   for (const m of matches ?? []) {
     if (isTerminal(m.status) || m.home_team_id == null || m.away_team_id == null) continue;
     teamsStillPlaying.add(m.home_team_id);
     teamsStillPlaying.add(m.away_team_id);
-    remainingGroupMatches.push({ homeTeamId: m.home_team_id, awayTeamId: m.away_team_id, kickoff: m.kickoff });
+    remainingGroupMatches.push({
+      homeTeamId: m.home_team_id,
+      awayTeamId: m.away_team_id,
+      kickoff: m.kickoff,
+      pHome: m.odds_home == null ? undefined : Number(m.odds_home),
+      pAway: m.odds_away == null ? undefined : Number(m.odds_away),
+    });
   }
   if (remainingGroupMatches.length === 0) return null; // group stage done
 
