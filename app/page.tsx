@@ -15,6 +15,8 @@ import { formatBusinessDayLabel, todayBusinessDay, businessDayOf, cardStateFor, 
 import { loadTeamMap } from "@/lib/views/data";
 import { hookFor } from "@/lib/digest/email";
 import { BUCKET_EMOJI, BUCKET_LABEL } from "@/lib/outlook/rationale";
+import { loadRaceData } from "@/lib/race/load";
+import { RaceCard } from "@/components/RaceCard";
 import type { Recap, RecapStats } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +84,7 @@ export default async function HomePage() {
           <AutoRefresh />
           <DigestPreview supabase={supabase} />
           <TodaysMatches supabase={supabase} />
+          <TheRace />
           <Leaderboard supabase={supabase} />
           {/* One action row, equal-width buttons. Pre-lock: Edit picks (primary) +
               Invite + Venmo-if-owing. Once the tournament is live, editing and
@@ -337,6 +340,14 @@ function MatchupCenter({ state, kickoff }: { state: CardState; kickoff: string |
         <span className="text-xs font-bold uppercase text-muted-foreground">vs</span>
       );
   }
+}
+
+/** Global rooting guide, truncated to the top contenders with a link to the full /race
+ *  page. Renders nothing pre-results or once the group stage is over (loadRaceData → null). */
+async function TheRace() {
+  const data = await loadRaceData();
+  if (!data || data.contenders.length === 0) return null;
+  return <RaceCard data={data} />;
 }
 
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
