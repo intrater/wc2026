@@ -25,25 +25,11 @@ export interface RaceContender {
   rootAgainst: (RaceTeam & { owner: string })[]; // a leader's team they don't share, still playing
 }
 
-export interface SwingBacker {
-  name: string;
-  rank: number;
-}
-
-export interface SwingGame {
-  home: RaceTeam;
-  away: RaceTeam;
-  kickoffISO: string | null;
-  homeBackers: SwingBacker[]; // contenders who own the home team (want it to win), by rank
-  awayBackers: SwingBacker[];
-}
-
 export interface RaceData {
   leaderPrize: string; // e.g. "$405"
   runnerUpPrize: string; // e.g. "$270"
   moneyLine: number; // points of the entry currently 2nd — the cutoff to be in the money
   contenders: RaceContender[]; // all entries, by rank
-  swingGames: SwingGame[]; // remaining games that matter most to the race, soonest first
   groupsEndISO: string | null;
   remainingGames: number;
 }
@@ -80,15 +66,15 @@ export function buildRace(input: RaceInput): RaceData {
   // Money line = the 2nd-place points total (the cutoff to be in the top-2 prizes).
   const moneyLine = sorted[1]?.points ?? sorted[0]?.points ?? 0;
 
-  // All owners of each team, in rank order (sorted is points-desc = rank-asc).
-  const ownersByTeam = new Map<number, SwingBacker[]>();
+  // Highest-ranked owner of each team (for the "(Mike's)" attribution in the data).
+  const ownerByTeam = new Map<number, { name: string; rank: number }>();
   for (const e of sorted) {
     const rank = rankByEntry.get(e.entryId)!;
     for (const t of picksByEntry.get(e.entryId) ?? []) {
-      (ownersByTeam.get(t) ?? ownersByTeam.set(t, []).get(t)!).push({ name: e.name, rank });
+      const cur = ownerByTeam.get(t);
+      if (!cur || rank < cur.rank) ownerByTeam.set(t, { name: e.name, rank });
     }
   }
-  const topOwner = (id: number) => ownersByTeam.get(id)?.[0]; // highest-ranked owner
 
   const contenders: RaceContender[] = sorted.map((e) => {
     const rank = rankByEntry.get(e.entryId)!;
@@ -108,7 +94,7 @@ export function buildRace(input: RaceInput): RaceData {
       }
     }
     const rootAgainst = [...againstIds]
-      .map((t) => ({ ...team(t), owner: topOwner(t)?.name ?? "" }))
+      .map((t) => ({ ...team(t), owner: ownerByTeam.get(t)?.name ?? "" }))
       .slice(0, MAX_AGAINST);
 
     return {
@@ -123,30 +109,11 @@ export function buildRace(input: RaceInput): RaceData {
     };
   });
 
-  // Swing games: rank remaining fixtures by how high up the table their owners sit
-  // (a leader with a stake → must-watch), keep the top handful, show soonest first.
-  const swingGames: SwingGame[] = remainingGroupMatches
-    .map((m) => {
-      const homeBackers = ownersByTeam.get(m.homeTeamId) ?? [];
-      const awayBackers = ownersByTeam.get(m.awayTeamId) ?? [];
-      const bestRank = Math.min(
-        Infinity,
-        ...homeBackers.map((b) => b.rank),
-        ...awayBackers.map((b) => b.rank),
-      );
-      return { home: team(m.homeTeamId), away: team(m.awayTeamId), kickoffISO: m.kickoff, homeBackers, awayBackers, bestRank };
-    })
-    .sort((a, b) => a.bestRank - b.bestRank)
-    .slice(0, 6)
-    .sort((a, b) => (a.kickoffISO ?? "").localeCompare(b.kickoffISO ?? ""))
-    .map(({ bestRank: _drop, ...g }) => g);
-
   return {
     leaderPrize: input.leaderPrize,
     runnerUpPrize: input.runnerUpPrize,
     moneyLine,
     contenders,
-    swingGames,
     groupsEndISO:
       remainingGroupMatches.map((m) => m.kickoff).filter((k): k is string => !!k).sort().at(-1) ?? null,
     remainingGames: remainingGroupMatches.length,

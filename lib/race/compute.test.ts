@@ -62,22 +62,6 @@ describe("buildRace (group-stage money)", () => {
     expect(buildRace(j).contenders.find((c) => c.name === "Mike")!.rootAgainst).toEqual([]);
   });
 
-  it("builds swing games with backers per team, soonest first", () => {
-    const r = buildRace(base());
-    expect(r.swingGames).toHaveLength(2);
-    // chronological: Spain v Japan (06-26) before France v Morocco (06-27)
-    expect(r.swingGames.map((g) => `${g.home.name} v ${g.away.name}`)).toEqual([
-      "Spain v Japan",
-      "France v Morocco",
-    ]);
-    const fra = r.swingGames.find((g) => g.home.name === "France")!;
-    expect(fra.homeBackers.map((b) => b.name)).toEqual(["Tim"]); // owns France
-    expect(fra.awayBackers.map((b) => b.name)).toEqual(["Charlie"]); // owns Morocco
-    const spa = r.swingGames.find((g) => g.home.name === "Spain")!;
-    expect(spa.homeBackers.map((b) => b.name)).toEqual(["Mike"]);
-    expect(spa.awayBackers).toEqual([]); // nobody owns Japan
-  });
-
   it("surfaces prizes, groups-end date, and remaining game count", () => {
     const r = buildRace(base());
     expect(r.leaderPrize).toBe("$405");
