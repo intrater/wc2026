@@ -38,24 +38,28 @@ function ContenderRow({ c, full, data }: { c: RaceContender; full?: boolean; dat
         <span className="min-w-0 flex-1 truncate font-semibold">{c.name}</span>
         <span className="tabular-nums text-sm font-bold">{c.points}</span>
       </div>
-      <div className="mt-0.5 space-y-0.5 pl-7 text-xs">
+      <div className="mt-1 space-y-1.5 pl-7 text-xs">
         <div>{statusLine(c, data.leaderPrize, data.runnerUpPrize)}</div>
-        <div className="text-muted-foreground">
-          <span className="font-semibold text-foreground">Root for</span>{" "}
-          <Teams teams={c.rootFor} full={full} />
+        <div>
+          <div className="font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Root for</div>
+          <div className="mt-0.5 text-base leading-tight">
+            <Teams teams={c.rootFor} full={full} />
+          </div>
         </div>
         {c.rootAgainst.length > 0 && (
-          <div className="text-muted-foreground">
-            <span className="font-semibold text-foreground">Hope they slip</span>{" "}
-            <span className="inline-flex flex-wrap gap-x-2 gap-y-0.5 align-middle">
-              {c.rootAgainst.map((t) => (
-                <span key={t.id} title={t.name}>
-                  {t.flag}
-                  {full ? <span className="ml-0.5 text-foreground">{t.name}</span> : null}
-                  <span className="text-muted-foreground"> ({t.owner})</span>
-                </span>
-              ))}
-            </span>
+          <div>
+            <div className="font-semibold uppercase tracking-wide text-[10px] text-muted-foreground">Root against</div>
+            <div className="mt-0.5 text-base leading-tight">
+              <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                {c.rootAgainst.map((t) => (
+                  <span key={t.id} title={`${t.name} (${t.owner})`}>
+                    {t.flag}
+                    {full ? <span className="ml-0.5 text-sm text-foreground">{t.name}</span> : null}
+                    <span className="ml-0.5 text-[10px] text-muted-foreground">({t.owner})</span>
+                  </span>
+                ))}
+              </span>
+            </div>
           </div>
         )}
       </div>
