@@ -17,7 +17,7 @@ export default async function RacePage() {
   return (
     <div className="space-y-5">
       <div className="text-center">
-        <PageTitle sub={<>Who needs what over the run-in — who to root for, who to root against.</>}>
+        <PageTitle sub={<>The group-stage money race — who&apos;s in the hunt, and who to root for or against.</>}>
           The Race
         </PageTitle>
       </div>

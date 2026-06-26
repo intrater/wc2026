@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RaceData, RaceTeam } from "@/lib/race/compute";
+import type { RaceData, RaceContender, RaceTeam } from "@/lib/race/compute";
 
 const ET_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" });
 const dayLabel = (iso: string | null) => (iso ? ET_DAY.format(new Date(iso)) : null);
@@ -21,7 +21,14 @@ function Teams({ teams, full }: { teams: RaceTeam[]; full?: boolean }) {
   );
 }
 
-function ContenderRow({ c, full }: { c: RaceData["contenders"][number]; full?: boolean }) {
+/** The one-line standing for a contender: leader / in-the-money / how far back. */
+function statusLine(c: RaceContender, leaderPrize: string, runnerUpPrize: string) {
+  if (c.rank === 1) return <span className="font-semibold text-neon">🥇 leads · {leaderPrize}</span>;
+  if (c.inMoneyNow) return <span className="font-semibold text-neon">🥈 in the money · {runnerUpPrize}</span>;
+  return <span className="text-muted-foreground">{c.gapToMoney} back of the money</span>;
+}
+
+function ContenderRow({ c, full, data }: { c: RaceContender; full?: boolean; data: RaceData }) {
   return (
     <li className="border-b border-border px-4 py-2.5 last:border-0">
       <div className="flex items-baseline gap-2">
@@ -29,18 +36,16 @@ function ContenderRow({ c, full }: { c: RaceData["contenders"][number]; full?: b
           {c.rank}
         </span>
         <span className="min-w-0 flex-1 truncate font-semibold">{c.name}</span>
-        <span className="tabular-nums text-sm text-muted-foreground">{c.total}</span>
-        {c.winPct != null && (
-          <span className="tabular-nums text-sm font-bold text-neon">{c.winPct}%</span>
-        )}
+        <span className="tabular-nums text-sm font-bold">{c.points}</span>
       </div>
-      <div className="mt-0.5 space-y-0.5 pl-7 text-xs text-muted-foreground">
-        <div>
+      <div className="mt-0.5 space-y-0.5 pl-7 text-xs">
+        <div>{statusLine(c, data.leaderPrize, data.runnerUpPrize)}</div>
+        <div className="text-muted-foreground">
           <span className="font-semibold text-foreground">Root for</span>{" "}
           <Teams teams={c.rootFor} full={full} />
         </div>
         {c.rootAgainst.length > 0 && (
-          <div>
+          <div className="text-muted-foreground">
             <span className="font-semibold text-foreground">Hope they slip</span>{" "}
             <span className="inline-flex flex-wrap gap-x-2 gap-y-0.5 align-middle">
               {c.rootAgainst.map((t) => (
@@ -59,8 +64,8 @@ function ContenderRow({ c, full }: { c: RaceData["contenders"][number]; full?: b
 }
 
 /**
- * "The Race" rooting guide. `full` renders every contender + the pivotal game and an
- * eliminated tally (the /race page); otherwise it truncates to the top few with a link.
+ * "The Race" — the group-stage money race. `full` renders every contender (the /race
+ * page); otherwise it truncates to the top few with a link.
  */
 export function RaceCard({ data, full = false }: { data: RaceData; full?: boolean }) {
   const shown = full ? data.contenders : data.contenders.slice(0, HOME_LIMIT);
@@ -68,49 +73,42 @@ export function RaceCard({ data, full = false }: { data: RaceData; full?: boolea
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          The Race
-        </h2>
-        <span className="text-xs text-muted-foreground">
-          {data.aliveCount} alive for 1st{ends ? ` · groups end ${ends}` : ""}
-        </span>
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            The Race · group-stage $
+          </h2>
+          <Link href="/payouts" className="text-xs font-semibold text-neon hover:underline">
+            {data.leaderPrize} / {data.runnerUpPrize}
+          </Link>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Top 2 on points when groups end{ends ? ` (${ends})` : ""} take the money · line at{" "}
+          <span className="font-semibold text-foreground">{data.moneyLine}</span> pts
+        </p>
       </div>
 
       <ol>
         {shown.map((c) => (
-          <ContenderRow key={c.entryId} c={c} full={full} />
+          <ContenderRow key={c.entryId} c={c} full={full} data={data} />
         ))}
       </ol>
 
-      {!full && data.aliveCount > shown.length && (
+      {!full && data.contenders.length > shown.length && (
         <Link
           href="/race"
           className="block border-t border-border px-4 py-2.5 text-center text-sm font-semibold text-neon transition-colors hover:bg-accent/40"
         >
-          See all {data.aliveCount} contenders →
+          See the full race →
         </Link>
       )}
 
       {full && (
-        <div className="space-y-1 border-t border-border px-4 py-3 text-xs text-muted-foreground">
-          {data.pivotal && (
-            <p>
-              <span className="font-semibold text-foreground">Most-watched game:</span>{" "}
-              {data.pivotal.home.flag} {data.pivotal.home.name} v {data.pivotal.away.flag}{" "}
-              {data.pivotal.away.name}
-              {dayLabel(data.pivotal.kickoffISO) ? ` (${dayLabel(data.pivotal.kickoffISO)})` : ""} —{" "}
-              {data.pivotal.owners} {data.pivotal.owners === 1 ? "roster" : "rosters"} have a stake.
-            </p>
-          )}
-          {data.eliminatedCount > 0 && (
-            <p>{data.eliminatedCount} {data.eliminatedCount === 1 ? "entry is" : "entries are"} out of the running for 1st.</p>
-          )}
-          <p className="pt-1 italic">
-            Root-for = your teams still playing. Hope-they-slip = a leader&apos;s team you don&apos;t own.
-            Odds from the chance-to-win model.
-          </p>
-        </div>
+        <p className="border-t border-border px-4 py-3 text-xs italic text-muted-foreground">
+          Two group-stage prizes ({data.leaderPrize} most points, {data.runnerUpPrize} runner-up) lock in when
+          the last group game ends. &ldquo;Root for&rdquo; = your teams still playing; &ldquo;hope they
+          slip&rdquo; = a leader&apos;s team you don&apos;t own. Separate from the overall-title prizes.
+        </p>
       )}
     </div>
   );
