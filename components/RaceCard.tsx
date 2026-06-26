@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { RaceData, RaceContender, RaceTeam } from "@/lib/race/compute";
+import type { RaceData, RaceContender, RaceTeam, SwingBacker } from "@/lib/race/compute";
 
 const ET_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" });
 const dayLabel = (iso: string | null) => (iso ? ET_DAY.format(new Date(iso)) : null);
@@ -67,6 +67,47 @@ function ContenderRow({ c, full, data }: { c: RaceContender; full?: boolean; dat
   );
 }
 
+/** "🇪🇸 Mike (1), Drew (6)" — who's pulling for this team, by rank. */
+function Backers({ flag, backers }: { flag: string; backers: SwingBacker[] }) {
+  if (backers.length === 0) return null;
+  const shown = backers.slice(0, 3);
+  return (
+    <span className="inline-flex items-baseline gap-1">
+      <span>{flag}</span>
+      <span className="text-muted-foreground">
+        {shown.map((b) => `${b.name} (${b.rank})`).join(", ")}
+        {backers.length > 3 ? ` +${backers.length - 3}` : ""}
+      </span>
+    </span>
+  );
+}
+
+function SwingGames({ games, limit }: { games: RaceData["swingGames"]; limit: number }) {
+  const shown = games.slice(0, limit);
+  if (shown.length === 0) return null;
+  return (
+    <div className="border-t border-border px-4 py-3">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        👀 Swing games to watch
+      </div>
+      <ul className="mt-1.5 space-y-2">
+        {shown.map((g) => (
+          <li key={`${g.home.id}-${g.away.id}`} className="text-xs">
+            <div className="font-semibold">
+              {g.home.flag} {g.home.name} <span className="text-muted-foreground">v</span> {g.away.flag} {g.away.name}
+              {dayLabel(g.kickoffISO) ? <span className="text-muted-foreground"> · {dayLabel(g.kickoffISO)}</span> : null}
+            </div>
+            <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+              <Backers flag={g.home.flag} backers={g.homeBackers} />
+              <Backers flag={g.away.flag} backers={g.awayBackers} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * "The Race" — the group-stage money race. `full` renders every contender (the /race
  * page); otherwise it truncates to the top few with a link.
@@ -97,6 +138,8 @@ export function RaceCard({ data, full = false }: { data: RaceData; full?: boolea
           <ContenderRow key={c.entryId} c={c} full={full} data={data} />
         ))}
       </ol>
+
+      <SwingGames games={data.swingGames} limit={full ? 5 : 2} />
 
       {!full && data.contenders.length > shown.length && (
         <Link
