@@ -10,24 +10,42 @@ import { sendEmail } from "@/lib/email/send";
 const isTerminal = (s: string) => (TERMINAL_STATUSES as readonly string[]).includes(s);
 const RESEND_AFTER_MS = 24 * 60 * 60 * 1000; // re-nag on a still-open issue once a day
 
+/**
+ * Sum score_lines.points per entry, paging through ALL rows. PostgREST caps a single
+ * .select() at 1000 rows; score_lines crosses 1000 once the knockouts add lines, so a
+ * one-shot read returns a truncated set and the per-entry sums come out short — which
+ * is exactly what fired a false `lines_sum_mismatch` alert on 2026-06-26. Page or lie.
+ */
+async function sumScoreLinesByEntry(admin: SupabaseClient): Promise<Map<string, number>> {
+  const sums = new Map<string, number>();
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await admin
+      .from("score_lines")
+      .select("entry_id, points")
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`loadAuditData(score_lines): ${error.message}`);
+    if (!data || data.length === 0) break;
+    for (const l of data) sums.set(l.entry_id, (sums.get(l.entry_id) ?? 0) + Number(l.points));
+    if (data.length < PAGE) break;
+  }
+  return sums;
+}
+
 async function loadAuditData(admin: SupabaseClient, now: number): Promise<AuditData> {
-  const [scoresRes, linesRes, snapRes, matchesRes, tiersRes, entriesRes, picksRes] =
+  const [scoresRes, snapRes, matchesRes, tiersRes, entriesRes, picksRes, lineSumByEntry] =
     await Promise.all([
       admin.from("scores").select("entry_id, total"),
-      admin.from("score_lines").select("entry_id, points"),
       admin.from("daily_standings").select("entry_id, total").eq("business_day", todayBusinessDay(now)),
       admin.from("matches").select("fixture_id, stage, status, group_label, home_team_id, away_team_id, home_goals, away_goals, winner_team_id, needs_attention"),
       admin.from("tiers").select("team_id, tier_no"),
       admin.from("entries").select("id").not("submitted_at", "is", null),
       admin.from("picks").select("entry_id, tier_no, team_id"),
+      sumScoreLinesByEntry(admin),
     ]);
-  for (const r of [scoresRes, linesRes, snapRes, matchesRes, tiersRes, entriesRes, picksRes]) {
+  for (const r of [scoresRes, snapRes, matchesRes, tiersRes, entriesRes, picksRes]) {
     if (r.error) throw new Error(`loadAuditData: ${r.error.message}`);
   }
-
-  const lineSumByEntry = new Map<string, number>();
-  for (const l of linesRes.data ?? [])
-    lineSumByEntry.set(l.entry_id, (lineSumByEntry.get(l.entry_id) ?? 0) + Number(l.points));
 
   const snapshotTotalByEntry = new Map<string, number>();
   for (const s of snapRes.data ?? []) snapshotTotalByEntry.set(s.entry_id, Number(s.total));
