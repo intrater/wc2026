@@ -516,38 +516,43 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                     )}
                     {phase.isLocked && outlook && <OutlookBadge bucket={outlook.bucket} clinched={outlook.clinched} />}
                   </span>
-                  {groupPrizes.get(r.entryId) && (
-                    <span className="text-[11px] font-bold text-neon">
-                      {groupPrizes.get(r.entryId)!.place === 1 ? "🥇" : "🥈"} {groupPrizes.get(r.entryId)!.label} · {groupPrizes.get(r.entryId)!.amount}
-                    </span>
-                  )}
-                  {phase.isLocked && knockoutPhase ? (
-                    // Knockouts: how many of your teams are still alive — scans at a glance.
-                    (() => {
-                      const alive = teamsAliveFor(r.entryId);
-                      return (
-                        <span className="text-[11px] tabular-nums text-muted-foreground">
-                          <span className={alive > 0 ? "font-semibold text-foreground" : ""}>{alive}</span>{" "}
-                          {alive === 1 ? "team" : "teams"} left
-                        </span>
-                      );
-                    })()
-                  ) : (
-                    games && (
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
-                        {games.played} games played / {games.left} left in this stage
-                        {groupStageOngoing && games.played >= MIN_GAMES_FOR_PPG && (
+                  {/* One meta line: group-stage prize (if any) · then teams-left (knockouts)
+                      or games played/left (group stage). */}
+                  {phase.isLocked && (() => {
+                    const prize = groupPrizes.get(r.entryId);
+                    const alive = teamsAliveFor(r.entryId);
+                    return (
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {prize && (
+                          <span className="font-bold text-neon">
+                            {prize.place === 1 ? "🥇" : "🥈"} {prize.label} · {prize.amount}
+                          </span>
+                        )}
+                        {prize && (knockoutPhase || games) && " · "}
+                        {knockoutPhase ? (
                           <>
-                            {" · "}
-                            <span className="font-semibold text-foreground">
-                              {(r.total / games.played).toFixed(1)}
-                            </span>{" "}
-                            pts/game
+                            <span className={alive > 0 ? "font-semibold text-foreground" : ""}>{alive}</span>{" "}
+                            {alive === 1 ? "team" : "teams"} left
                           </>
+                        ) : (
+                          games && (
+                            <>
+                              {games.played} games played / {games.left} left in this stage
+                              {groupStageOngoing && games.played >= MIN_GAMES_FOR_PPG && (
+                                <>
+                                  {" · "}
+                                  <span className="font-semibold text-foreground">
+                                    {(r.total / games.played).toFixed(1)}
+                                  </span>{" "}
+                                  pts/game
+                                </>
+                              )}
+                            </>
+                          )
                         )}
                       </span>
-                    )
-                  )}
+                    );
+                  })()}
                 </span>
                 <span className="text-right">
                   <span className="block text-lg font-extrabold tabular-nums text-foreground">{s.total}</span>
