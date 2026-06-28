@@ -289,20 +289,17 @@ const NEXT_DAY = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
 });
 
-/**
- * One line under each picked team: the actual scoreline of every match it has played
- * ("Beat 🇯🇵 Japan 1–0"), a live score while it's on the pitch, and a "today / next"
- * nudge otherwise. This is the only surface that shows a team which played and *lost*
- * (the points breakdown lists point-earning events only). Renders nothing pre-lock /
- * before a team has a fixture.
- */
-const RESULT_VERB = { W: "Beat", D: "Drew", L: "Lost to" } as const;
-
 function opponentLabel(oppId: number | null, teamMap: Map<number, TeamInfo>): string {
   const opp = oppId != null ? teamMap.get(oppId) : undefined;
   return opp ? `${opp.flag} ${opp.name}` : "opponent";
 }
 
+/**
+ * Forward-looking one-liner under a picked team: a live score while it's on the pitch,
+ * else a "today / next" nudge. Past results aren't shown here — the game-by-game
+ * breakdown below already lists every game (wins, draws, and losses). Renders nothing
+ * pre-lock or when there's nothing upcoming.
+ */
 function TeamStatusLine({
   summary,
   teamMap,
@@ -313,14 +310,7 @@ function TeamStatusLine({
   today: string;
 }) {
   if (!summary) return null;
-  const { results, played, live, nextKickoff } = summary;
-
-  const resultText = results
-    .map(
-      (r) =>
-        `${RESULT_VERB[r.outcome]} ${opponentLabel(r.oppId, teamMap)} ${r.my}–${r.opp}${r.pens ? " (pens)" : ""}`,
-    )
-    .join(" · ");
+  const { played, live, nextKickoff } = summary;
 
   let ahead: ReactNode = null;
   if (nextKickoff) {
@@ -332,21 +322,18 @@ function TeamStatusLine({
     ahead = "Yet to play";
   }
 
-  if (!resultText && !ahead && !live) return null;
+  if (!live && !ahead) return null;
 
   return (
     <span className="mt-0.5 block text-xs text-muted-foreground">
-      {resultText}
-      {live && (
-        <>
-          {resultText && " · "}
-          <span className="font-semibold text-neon">
-            ● Live vs {opponentLabel(live.oppId, teamMap)} {live.my}–{live.opp}
-            {live.elapsed != null ? ` ${live.elapsed}′` : ""}
-          </span>
-        </>
+      {live ? (
+        <span className="font-semibold text-neon">
+          ● Live vs {opponentLabel(live.oppId, teamMap)} {live.my}–{live.opp}
+          {live.elapsed != null ? ` ${live.elapsed}′` : ""}
+        </span>
+      ) : (
+        ahead
       )}
-      {ahead && !live && <>{resultText && " · "}{ahead}</>}
     </span>
   );
 }
