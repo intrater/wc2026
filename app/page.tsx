@@ -580,7 +580,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
       )}
       <div className="border-t border-border px-4 py-3 text-center">
         <Link href="/math" className="text-sm font-semibold text-neon hover:underline">
-          Check my math · every team, every point →
+          Check the math · every team, every point →
         </Link>
       </div>
     </div>
