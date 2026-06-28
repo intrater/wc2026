@@ -8,6 +8,7 @@ import { orderedGroupStandings, type ScoringInput } from "@/lib/scoring/engine";
 import { isTerminal, isNotOccurring } from "@/lib/matches/day";
 import type { EntryState, TeamFuture } from "./bounds";
 import type { RemainingGroupFixture } from "./sim/worlds";
+import { assignR32ToSlots, pairKey, type AssignedTie, type Group, type Placement } from "./sim/bracket2026";
 
 const GROUP_COMPLETE_MATCHES = 6;
 const KO_STAGES = new Set(["r32", "r16", "qf", "sf", "final", "third_place"]);
@@ -20,6 +21,11 @@ export interface OutlookData {
   teamMeta: Map<number, { name: string; flag: string; tier: number }>;
   remainingGroupFixtures: RemainingGroupFixture[];
   leaderTotal: number;
+  // Real knockout bracket (set only once groups are complete AND all 16 R32 fixtures match
+  // the encoded structure). When present, the sim plays the true bracket; else it falls back
+  // to strength-reseeding. terminalWinnerByPair holds already-played knockout results.
+  realR32?: AssignedTie[];
+  terminalWinnerByPair: Map<string, number>;
 }
 
 export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookData> {
@@ -107,5 +113,31 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
   }));
   const leaderTotal = entries.reduce((max, e) => Math.max(max, e.currentTotal), 0);
 
-  return { scoring, entries, futureByTeam, oddsByTeam, teamMeta, remainingGroupFixtures, leaderTotal };
+  // Real knockout bracket: map the published R32 fixtures onto the encoded slot tree using
+  // final group placements. Only adopt it if all 16 fixtures match cleanly (else fall back).
+  const standings = orderedGroupStandings(scoring.matches);
+  const posOf = new Map<number, { group: Group; pos: Placement }>();
+  for (const [g, ids] of standings) {
+    if (ids[0] != null) posOf.set(ids[0], { group: g as Group, pos: "W" });
+    if (ids[1] != null) posOf.set(ids[1], { group: g as Group, pos: "RU" });
+    if (ids[2] != null) posOf.set(ids[2], { group: g as Group, pos: "3rd" });
+  }
+  const r32Fixtures = (matchesRes.data ?? [])
+    .filter((m) => m.stage === "r32" && m.home_team_id != null && m.away_team_id != null)
+    .map((m) => ({ home: m.home_team_id as number, away: m.away_team_id as number }));
+  let realR32: AssignedTie[] | undefined;
+  if (r32Fixtures.length === 16) {
+    const { ties, unmatched } = assignR32ToSlots(r32Fixtures, posOf);
+    if (unmatched.length === 0 && ties.length === 16) realR32 = ties;
+  }
+
+  // Already-played knockout results, so the sim fixes them instead of re-simulating.
+  const terminalWinnerByPair = new Map<string, number>();
+  for (const m of matchesRes.data ?? []) {
+    if (m.stage && KO_STAGES.has(m.stage) && isTerminal(m.status) && m.winner_team_id != null && m.home_team_id != null && m.away_team_id != null) {
+      terminalWinnerByPair.set(pairKey(m.home_team_id, m.away_team_id), m.winner_team_id);
+    }
+  }
+
+  return { scoring, entries, futureByTeam, oddsByTeam, teamMeta, remainingGroupFixtures, leaderTotal, realR32, terminalWinnerByPair };
 }

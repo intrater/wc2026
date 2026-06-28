@@ -215,19 +215,27 @@ export function assignR32ToSlots(
   return { ties, unmatched };
 }
 
+/** Sorted team-pair key, for looking up an already-played knockout result. */
+export const pairKey = (a: number, b: number) => [a, b].sort((x, y) => x - y).join("-");
+
 /**
- * Play the REAL fixed bracket for one simulated world: sample each R32 tie, then
- * advance winners (and the two semifinal losers, for the 3rd-place playoff) through
- * KNOCKOUT_TREE. Returns the simulated knockout matches in the exact ScoringMatch
- * shape the engine consumes (synthetic negative fixture ids, like the legacy sim).
+ * Play the REAL fixed bracket for one simulated world. Each R32 tie and each downstream
+ * node either:
+ *   - uses the ACTUAL winner if that matchup has already been played (looked up in
+ *     `terminalWinnerByPair`) — and is NOT emitted, since the real result already lives
+ *     in the engine's terminal matches and would otherwise be double-counted; or
+ *   - is sampled by strength and emitted as a ScoringMatch (synthetic negative id).
+ * So this stays correct through the whole bracket: as games finish, they flip from
+ * "sampled" to "fixed" automatically. Returns only the simulated (unplayed) matches.
  *
- * This REPLACES the strength-reseed of bracket.ts once the bracket is set: the slots
- * are fixed, so only the match outcomes vary world to world. Requires all 16 R32 ties.
+ * This REPLACES the strength-reseed of bracket.ts once the real bracket is set: slots are
+ * fixed, only the unplayed outcomes vary world to world. Requires all 16 R32 ties.
  */
 export function playFixedBracket(
   r32: AssignedTie[],
   ratings: Map<number, number>,
   rng: () => number,
+  terminalWinnerByPair: Map<string, number> = new Map(),
   sampleMatch: typeof sampleKnockoutMatch = sampleKnockoutMatch,
 ): ScoringMatch[] {
   const rate = (id: number) => ratings.get(id) ?? -99;
@@ -237,10 +245,17 @@ export function playFixedBracket(
   let fid = -1;
 
   const play = (matchNo: number, stage: ScoringMatch["stage"], home: number, away: number) => {
-    const m = sampleMatch(fid--, stage, home, away, rate(home), rate(away), rng);
-    out.push(m);
-    winnerBy.set(matchNo, m.winnerTeamId!);
-    loserBy.set(matchNo, m.winnerTeamId === home ? away : home);
+    const known = terminalWinnerByPair.get(pairKey(home, away));
+    let winner: number;
+    if (known != null) {
+      winner = known; // already played: use the real result, don't re-emit (avoids double-count)
+    } else {
+      const m = sampleMatch(fid--, stage, home, away, rate(home), rate(away), rng);
+      out.push(m);
+      winner = m.winnerTeamId!;
+    }
+    winnerBy.set(matchNo, winner);
+    loserBy.set(matchNo, winner === home ? away : home);
   };
 
   for (const tie of r32) play(tie.match, "r32", tie.home, tie.away);

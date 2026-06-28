@@ -39,6 +39,8 @@ export async function runOutlook(
       terminalMatches: data.scoring.matches,
       remainingGroupFixtures: data.remainingGroupFixtures,
       ratings,
+      realR32: data.realR32,
+      terminalWinnerByPair: data.terminalWinnerByPair,
     },
     N_SIMS,
     SEED,

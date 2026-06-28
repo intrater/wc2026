@@ -6,6 +6,7 @@ import {
   validateAgainstFixtures,
   assignR32ToSlots,
   playFixedBracket,
+  pairKey,
   type Group,
   type SlotRef,
   type TeamPos,
@@ -190,5 +191,27 @@ describe("playFixedBracket", () => {
     const final = out.find((m) => m.stage === "final")!;
     expect(final.winnerTeamId).toBeGreaterThanOrEqual(1);
     expect(final.winnerTeamId).toBeLessThanOrEqual(32);
+  });
+
+  it("uses real results for already-played ties and does NOT re-emit them", () => {
+    // Force the UNDERDOG to have won match 73 (teams 1 v 2). Without this the higher
+    // rating (team 2) would win; with it, team 1 advances and the game isn't emitted.
+    const terminal = new Map<string, number>([[pairKey(1, 2), 1]]);
+    const out = playFixedBracket(r32, ratings, mulberry32(5), terminal);
+    expect(out).toHaveLength(31); // 32 minus the one already-played tie
+    expect(out.some((m) => [m.homeTeamId, m.awayTeamId].sort().join("-") === pairKey(1, 2))).toBe(false);
+    // team 1 (the real winner) advances into match 90's R16 (feeders 73 & 75)
+    const r16 = out.find((m) => m.stage === "r16" && [m.homeTeamId, m.awayTeamId].includes(1));
+    expect(r16).toBeDefined();
+  });
+
+  it("a fully-played bracket emits nothing (everything fixed)", () => {
+    // Hand it a terminal winner for every conceivable pairing: walk it deterministically.
+    // Simpler: play once, capture all winners, feed them back as terminal — expect 0 emitted.
+    const first = playFixedBracket(r32, ratings, mulberry32(1));
+    const terminal = new Map<string, number>();
+    for (const m of first) terminal.set(pairKey(m.homeTeamId, m.awayTeamId), m.winnerTeamId!);
+    // also fix the R32 ties themselves (sampled in `first`)
+    expect(playFixedBracket(r32, ratings, mulberry32(1), terminal)).toHaveLength(0);
   });
 });
