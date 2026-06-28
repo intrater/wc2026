@@ -73,10 +73,7 @@ export async function persistScores(
   admin: Admin,
   result: ReturnType<typeof recompute>,
 ): Promise<void> {
-  // Full replace keeps the operation idempotent regardless of how often it runs.
-  const delLines = await admin.from("score_lines").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-  if (delLines.error) throw new Error(`persistScores(lines delete): ${delLines.error.message}`);
-
+  // scores upsert is idempotent (keyed on entry_id) — safe even if two passes overlap.
   const upsertScores = await admin.from("scores").upsert(
     result.scores.map((s) => ({
       entry_id: s.entryId,
@@ -90,19 +87,19 @@ export async function persistScores(
   );
   if (upsertScores.error) throw new Error(`persistScores(scores upsert): ${upsertScores.error.message}`);
 
-  if (result.lines.length > 0) {
-    const insLines = await admin.from("score_lines").insert(
-      result.lines.map((l) => ({
-        entry_id: l.entryId,
-        team_id: l.teamId,
-        match_id: l.matchId,
-        points: l.points,
-        label: l.label,
-        category: l.category,
-      })),
-    );
-    if (insLines.error) throw new Error(`persistScores(lines insert): ${insLines.error.message}`);
-  }
+  // score_lines: delete-all + reinsert done ATOMICALLY in one transaction (migration 0012),
+  // so two recomputes racing can't interleave into duplicate lines (sum = 2× total).
+  const replace = await admin.rpc("replace_score_lines", {
+    p_lines: result.lines.map((l) => ({
+      entry_id: l.entryId,
+      team_id: l.teamId,
+      match_id: l.matchId,
+      points: l.points,
+      label: l.label,
+      category: l.category,
+    })),
+  });
+  if (replace.error) throw new Error(`persistScores(replace_score_lines): ${replace.error.message}`);
 }
 
 /** Load → recompute → persist. Safe to call after every ingest. */
