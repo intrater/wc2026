@@ -96,6 +96,30 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   );
   const today = todayBusinessDay();
 
+  // Knockout phase: which teams are still alive (advanced + not knocked out). Used to dim
+  // eliminated teams and float the live ones to the top.
+  const knockoutTeams = new Set<number>();
+  const knockoutLosers = new Set<number>();
+  if (phase.isLocked) {
+    const { data: ko } = await supabase
+      .from("matches")
+      .select("stage, status, home_team_id, away_team_id, winner_team_id")
+      .not("stage", "is", null)
+      .neq("stage", "group");
+    for (const m of ko ?? []) {
+      for (const t of [m.home_team_id, m.away_team_id]) if (t != null) knockoutTeams.add(t);
+      if (isTerminal(m.status) && m.winner_team_id != null) {
+        for (const t of [m.home_team_id, m.away_team_id]) if (t != null && t !== m.winner_team_id) knockoutLosers.add(t);
+      }
+    }
+  }
+  const knockoutPhase = knockoutTeams.size > 0;
+  const isAlive = (teamId: number) => !knockoutPhase || (knockoutTeams.has(teamId) && !knockoutLosers.has(teamId));
+  // Float still-alive teams to the top; keep tier order within each group (stable sort).
+  const orderedPicks = knockoutPhase
+    ? [...picks].sort((a, b) => (isAlive(b.team_id) ? 1 : 0) - (isAlive(a.team_id) ? 1 : 0))
+    : picks;
+
   return (
     <div className="space-y-5">
       <div className="text-center">
@@ -137,10 +161,11 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
       <TodayAndNext rows={matchRows} teamIds={teamIds} teamMap={teamMap} isLocked={phase.isLocked} />
 
       <div className="space-y-2">
-        {picks.map((p) => {
+        {orderedPicks.map((p) => {
           const team = teamMap.get(p.team_id);
           const teamLines = linesByTeam.get(p.team_id) ?? [];
           const total = ptsByTeam.get(p.team_id) ?? 0;
+          const out = knockoutPhase && !isAlive(p.team_id);
           // This team's finished fixtures in kickoff order → game numbers (gm 1, gm 2…),
           // each tagged with its outcome so a scoreless loss still shows as "gm N: loss (0)".
           const orderedGames = matchRows
@@ -155,11 +180,18 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
             });
           const log = buildGameLog(teamLines, orderedGames);
           return (
-            <div key={p.tier_no} className="rounded-xl border border-border bg-card p-3 shadow-sm">
+            <div key={p.tier_no} className={`rounded-xl border border-border bg-card p-3 shadow-sm transition-opacity ${out ? "opacity-50" : ""}`}>
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{team?.flag}</span>
                 <span className="flex-1">
-                  <span className="block font-semibold">{team?.name}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-semibold">{team?.name}</span>
+                    {out && (
+                      <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Out
+                      </span>
+                    )}
+                  </span>
                   <span className="text-xs text-muted-foreground"><span className="font-mono text-neon">{String(p.tier_no).padStart(2, "0")}</span> · {TIER_LABELS[p.tier_no]}</span>
                   <TeamStatusLine summary={summaryByTeam.get(p.team_id)} teamMap={teamMap} today={today} />
                 </span>
