@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 export interface BottomNavItem {
   href: string;
   label: string;
-  icon: "home" | "matches" | "digest" | "team" | "dev";
+  icon: "home" | "matches" | "digest" | "team" | "math" | "dev";
   /** Path prefixes that mark this tab active ("/" must match exactly). */
   active: string[];
   /**
@@ -166,6 +166,13 @@ function TabIcon({ name }: { name: BottomNavItem["icon"] }) {
         <svg {...common}>
           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+    case "math":
+      return (
+        <svg {...common}>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M9 3v18M3 9h18M3 15h18" />
         </svg>
       );
     case "dev":

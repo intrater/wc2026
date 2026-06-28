@@ -60,11 +60,24 @@ export async function loadScoringInput(admin: Admin): Promise<ScoringInput> {
       isTerminal: true,
     }));
 
+  // Source of truth for advancement: the teams actually drawn into the real Round of 32.
+  // We do NOT infer this from group standings — who advanced is a fact of the tournament,
+  // read straight from the published bracket (any status). Undefined until the R32 exists.
+  const r32Teams = new Set<number>();
+  for (const m of matchesRes.data ?? []) {
+    if (m.stage === "r32") {
+      if (m.home_team_id != null) r32Teams.add(m.home_team_id);
+      if (m.away_team_id != null) r32Teams.add(m.away_team_id);
+    }
+  }
+  const advancedTeams = r32Teams.size > 0 ? r32Teams : undefined;
+
   return {
     tierByTeam,
     entries: (entriesRes.data ?? []).map((e) => ({ id: e.id })),
     picksByEntry,
     matches,
+    advancedTeams,
   };
 }
 

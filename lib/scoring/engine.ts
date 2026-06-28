@@ -36,6 +36,11 @@ export interface ScoringInput {
   entries: { id: string }[];
   picksByEntry: Map<string, number[]>; // entry_id -> [team_id,...] (the 12 picks)
   matches: ScoringMatch[]; // terminal, stage-mapped matches only
+  // The real set of teams that advanced to the knockouts (the 32 drawn into the R32), read
+  // from the published bracket — NOT inferred from standings. When present it is the source
+  // of truth for the advance/group bonuses: a team scores them only if it actually advanced.
+  // Omitted before the R32 exists (group stage still in progress).
+  advancedTeams?: Set<number>;
 }
 
 // ---------- outputs ----------
@@ -77,6 +82,12 @@ interface StandingRow {
 // standings during group play never award advancement prematurely.
 const GROUP_MATCHES_WHEN_COMPLETE = 6;
 
+// Real football points, used ONLY to rank group standings for advancement (who finishes
+// 1st/2nd/3rd and which thirds advance). Distinct from the pool's GROUP_POINTS (the points
+// entries score), which must never be used to compute standings.
+const STANDINGS_WIN_POINTS = 3;
+const STANDINGS_DRAW_POINTS = 1;
+
 /** Build per-group standings from terminal group matches in COMPLETE groups only. */
 function buildStandings(matches: ScoringMatch[]): Map<string, StandingRow[]> {
   const byGroup = new Map<string, Map<number, StandingRow>>();
@@ -100,13 +111,17 @@ function buildStandings(matches: ScoringMatch[]): Map<string, StandingRow[]> {
     home.ga += m.awayGoals;
     away.gf += m.awayGoals;
     away.ga += m.homeGoals;
+    // Standings/advancement use REAL football points (3 for a win, 1 for a draw) — NOT the
+    // pool's GROUP_POINTS (win=2). The pool's values are only for the points entries earn;
+    // using them here mis-ranks draw-heavy teams (e.g. 3 draws = 3 real pts but only beat a
+    // 1-win side under 2/1/0), which wrongly decided the 8th best-third (Iran over Senegal).
     if (m.homeGoals > m.awayGoals) {
-      home.points += GROUP_POINTS.win;
+      home.points += STANDINGS_WIN_POINTS;
     } else if (m.homeGoals < m.awayGoals) {
-      away.points += GROUP_POINTS.win;
+      away.points += STANDINGS_WIN_POINTS;
     } else {
-      home.points += GROUP_POINTS.draw;
-      away.points += GROUP_POINTS.draw;
+      home.points += STANDINGS_DRAW_POINTS;
+      away.points += STANDINGS_DRAW_POINTS;
     }
   }
 
@@ -285,6 +300,19 @@ const isGroupStage = (s: MatchStage | "group_placement") => s === "group" || s =
 export function recompute(input: ScoringInput): ScoringResult {
   const terminal = input.matches.filter((m) => m.isTerminal);
   const placement = computeGroupPlacement(terminal);
+
+  // Once the bracket is published, advancement bonuses follow the REAL Round of 32, not our
+  // standings calc. Winners/runners-up are kept (and confirmed in the R32); the advancing
+  // thirds are exactly the R32 teams that aren't a winner/runner-up. So a team that didn't
+  // actually advance can never receive an advance/group bonus, regardless of standings math.
+  if (input.advancedTeams && input.advancedTeams.size > 0) {
+    const adv = input.advancedTeams;
+    placement.winners = new Set([...placement.winners].filter((id) => adv.has(id)));
+    placement.runnersUp = new Set([...placement.runnersUp].filter((id) => adv.has(id)));
+    placement.bestThirds = new Set(
+      [...adv].filter((id) => !placement.winners.has(id) && !placement.runnersUp.has(id)),
+    );
+  }
 
   // memoize each team's lines (teams may be picked by multiple entries)
   const teamLineCache = new Map<number, TeamLine[]>();
