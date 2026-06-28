@@ -17,6 +17,8 @@ import { hookFor } from "@/lib/digest/email";
 import { BUCKET_EMOJI, BUCKET_LABEL } from "@/lib/outlook/rationale";
 import { loadRaceData } from "@/lib/race/load";
 import { RaceCard } from "@/components/RaceCard";
+import { computeGroupPrizes } from "@/lib/leaderboard/groupPrize";
+import { computePayouts, formatUsd, type PayoutSplit } from "@/lib/payouts/calc";
 import type { Recap, RecapStats } from "@/lib/db/types";
 
 export const dynamic = "force-dynamic";
@@ -353,16 +355,18 @@ async function TheRace() {
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
   const phase = await getPhase(); // cached per-request
   const today = todayBusinessDay();
-  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: groupMatches }, { data: outlookRows }] = await Promise.all([
+  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: groupMatches }, { data: outlookRows }, { data: settings }, { count: paidCount }] = await Promise.all([
     supabase
       .from("scores")
-      .select("entry_id, total, underdog_total, upset_total, entries(display_name, paid)"),
+      .select("entry_id, total, group_stage_total, underdog_total, upset_total, entries(display_name, paid)"),
     supabase.from("daily_standings").select("entry_id, total, rank").eq("business_day", today),
     // Picks are RLS-gated: all picks are readable once locked, which is also the only
     // time this column shows — so pre-lock the empty result is fine.
     supabase.from("picks").select("entry_id, team_id"),
     supabase.from("matches").select("status, home_team_id, away_team_id").eq("stage", "group"),
     supabase.from("entry_outlook").select("entry_id, bucket, clinched"),
+    supabase.from("settings").select("entry_fee_cents, payout_split").single(),
+    supabase.from("entries").select("id", { count: "exact", head: true }).eq("paid", true).not("submitted_at", "is", null),
   ]);
 
   const scores = rows ?? [];
@@ -423,6 +427,23 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   const MIN_GAMES_FOR_PPG = 3;
   const groupStageOngoing = (groupMatches ?? []).some((m) => !isTerminal(m.status));
 
+  // Group-stage money: once every group game is final, crown the two prize winners by
+  // group_stage_total (frozen after the group stage) and badge them on the board.
+  const groupStageComplete = (groupMatches?.length ?? 0) > 0 && !groupStageOngoing;
+  const split = (settings?.payout_split as PayoutSplit | undefined) ?? { champion: 0.5, runner_up: 0.25, group_leader: 0.15, group_runner_up: 0.1 };
+  const payouts = computePayouts(paidCount ?? scores.length, settings?.entry_fee_cents ?? 10000, split);
+  const groupPrizes = computeGroupPrizes(
+    scores.map((s) => ({
+      entryId: s.entry_id,
+      groupStageTotal: Number(s.group_stage_total),
+      underdogTotal: Number(s.underdog_total),
+      upsetTotal: Number(s.upset_total),
+    })),
+    groupStageComplete,
+    formatUsd(payouts.groupLeaderCents),
+    formatUsd(payouts.groupRunnerUpCents),
+  );
+
   // Exact "chance to win" labels (Phase 1): 💀 no_shot and 🔒 clinched are the only ones we
   // state as fact; everything else stays unlabeled until the model grades it.
   const outlookByEntry = new Map(
@@ -479,6 +500,11 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                     )}
                     {phase.isLocked && outlook && <OutlookBadge bucket={outlook.bucket} clinched={outlook.clinched} />}
                   </span>
+                  {groupPrizes.get(r.entryId) && (
+                    <span className="text-[11px] font-bold text-neon">
+                      {groupPrizes.get(r.entryId)!.place === 1 ? "🥇" : "🥈"} {groupPrizes.get(r.entryId)!.label} · {groupPrizes.get(r.entryId)!.amount}
+                    </span>
+                  )}
                   {games && (
                     <span className="text-[11px] text-muted-foreground tabular-nums">
                       {games.played} games played / {games.left} left in this stage
