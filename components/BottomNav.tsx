@@ -57,7 +57,7 @@ export async function BottomNav() {
             active: ["/digest"],
             unreadKey: latestDigestDay ?? undefined,
           },
-          { href: "/math", label: "Math", icon: "math", active: ["/math"] },
+          { href: "/math", label: "Check Math", icon: "math", active: ["/math"] },
         ] satisfies BottomNavItem[])
       : []),
     ...(hasEntry

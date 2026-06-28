@@ -18,7 +18,7 @@ export default async function MathPage() {
     <div className="space-y-5">
       <div className="text-center">
         <PageTitle sub={<>Every manager, every team, every point — and exactly where each one comes from.</>}>
-          The Math
+          Check My Math
         </PageTitle>
       </div>
 
