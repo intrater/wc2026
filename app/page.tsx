@@ -565,18 +565,18 @@ function OutlookBadge({ bucket, clinched }: { bucket: string; clinched: boolean 
   );
 }
 
-/** ▲/▼ + points-today, token-bound (neon up, destructive down, muted otherwise). */
+/** Points gained today. Only ever shows gains: a flat day shows nothing, and a
+ *  negative (which can only come from a result correction, never normal play) is
+ *  hidden too — a cryptic "-1 today" on the board just confuses entrants. */
 function MovementLine({ move }: { move: ReturnType<typeof movementFor> }) {
   if (move.isNew) {
     return <span className="block text-[10px] font-semibold text-muted-foreground">NEW</span>;
   }
-  // Points moved today only — no rank-movement glyph. A flat day shows nothing
-  // (a lone "–" reads as a negative sign).
   const pts = move.pointsToday ?? 0;
-  if (pts === 0) return null;
+  if (pts <= 0) return null;
   return (
     <span className="block text-[10px] tabular-nums text-muted-foreground">
-      {pts > 0 ? `+${pts}` : pts} today
+      +{pts} today
     </span>
   );
 }
