@@ -525,7 +525,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                       <span className="text-[11px] tabular-nums text-muted-foreground">
                         {prize && (
                           <span className="font-bold text-neon">
-                            {prize.place === 1 ? "🥇" : "🥈"} {prize.label} · {prize.amount}
+                            {prize.place === 1 ? "🥇" : "🥈"} {prize.label}
                           </span>
                         )}
                         {prize && (knockoutPhase || games) && " · "}
