@@ -22,23 +22,29 @@ export function ManagerGrid({ data }: { data: MathData }) {
         Tap any team to see exactly how its points are earned. A team is worth the same to everyone who picked it.
       </p>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      {/* Frozen Manager + Total columns use the solid --background (the cards are glassy/
+          translucent, so a see-through frozen column would let scrolled flags bleed through). */}
+      <div className="overflow-x-auto rounded-xl border border-border bg-background">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-card">
-              <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-semibold">Manager</th>
+            <tr className="border-b border-border">
+              <th className="sticky left-0 z-20 border-r border-border bg-background px-3 py-2 text-left font-semibold">
+                Manager
+              </th>
               {TIERS.map((t) => (
                 <th key={t} className="px-2 py-2 text-center font-mono text-[11px] text-muted-foreground">
                   {String(t).padStart(2, "0")}
                 </th>
               ))}
-              <th className="px-3 py-2 text-right font-semibold">Total</th>
+              <th className="sticky right-0 z-20 border-l border-border bg-background px-3 py-2 text-right font-semibold">
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>
             {managers.map((m, i) => (
-              <tr key={m.entryId} className={i % 2 ? "bg-card/40" : ""}>
-                <td className="sticky left-0 z-10 truncate bg-inherit px-3 py-1.5 font-medium" style={{ maxWidth: 140 }}>
+              <tr key={m.entryId} className={i % 2 ? "bg-white/[0.04]" : ""}>
+                <td className="sticky left-0 z-10 truncate border-r border-border bg-background px-3 py-1.5 font-medium" style={{ maxWidth: 132 }}>
                   <span className="mr-1 text-[11px] text-muted-foreground">{i + 1}.</span>
                   {m.name}
                 </td>
@@ -61,7 +67,9 @@ export function ManagerGrid({ data }: { data: MathData }) {
                     </td>
                   );
                 })}
-                <td className="px-3 py-1.5 text-right font-bold tabular-nums text-neon">{m.total}</td>
+                <td className="sticky right-0 z-10 border-l border-border bg-background px-3 py-1.5 text-right font-bold tabular-nums text-neon">
+                  {m.total}
+                </td>
               </tr>
             ))}
           </tbody>
