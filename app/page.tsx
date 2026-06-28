@@ -355,7 +355,7 @@ async function TheRace() {
 async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof createClient>> }) {
   const phase = await getPhase(); // cached per-request
   const today = todayBusinessDay();
-  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: groupMatches }, { data: outlookRows }, { data: settings }, { count: paidCount }] = await Promise.all([
+  const [{ data: rows }, { data: snapshots }, { data: pickRows }, { data: matchRows }, { data: outlookRows }, { data: settings }, { count: paidCount }] = await Promise.all([
     supabase
       .from("scores")
       .select("entry_id, total, group_stage_total, underdog_total, upset_total, entries(display_name, paid)"),
@@ -363,7 +363,7 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
     // Picks are RLS-gated: all picks are readable once locked, which is also the only
     // time this column shows — so pre-lock the empty result is fine.
     supabase.from("picks").select("entry_id, team_id"),
-    supabase.from("matches").select("status, home_team_id, away_team_id").eq("stage", "group"),
+    supabase.from("matches").select("stage, status, home_team_id, away_team_id, winner_team_id"),
     supabase.from("entry_outlook").select("entry_id, bucket, clinched"),
     supabase.from("settings").select("entry_fee_cents, payout_split").single(),
     supabase.from("entries").select("id", { count: "exact", head: true }).eq("paid", true).not("submitted_at", "is", null),
@@ -389,14 +389,15 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
   // Movement is meaningless before games can score — suppress the line pre-lock.
   const haveSnapshots = phase.isLocked && snapByEntry.size > 0;
 
+  const groupMatches = (matchRows ?? []).filter((m) => m.stage === "group");
+
   // Group-stage games played vs. remaining, per entry — context for a high total
   // (points scale with how many of your team-games have happened). Counted per team
   // appearance: a team's 3 group games × 12 picks = 36 total, and a match between two
-  // of your own teams counts twice. Group-stage only for now; revisit once the
-  // knockout bracket is drawn and "games left" depends on who advances.
+  // of your own teams counts twice.
   const teamPlayed = new Map<number, number>();
   const teamTotal = new Map<number, number>();
-  for (const m of groupMatches ?? []) {
+  for (const m of groupMatches) {
     for (const t of [m.home_team_id, m.away_team_id]) {
       if (t == null) continue;
       teamTotal.set(t, (teamTotal.get(t) ?? 0) + 1);
@@ -418,6 +419,21 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
     }
     return { played, left: total - played };
   };
+
+  // Knockout phase: how many of an entry's teams are still alive. A team is alive if it
+  // advanced (appears in a knockout fixture) and hasn't lost a knockout game yet.
+  const knockoutTeams = new Set<number>();
+  const knockoutLosers = new Set<number>();
+  for (const m of matchRows ?? []) {
+    if (!m.stage || m.stage === "group") continue;
+    for (const t of [m.home_team_id, m.away_team_id]) if (t != null) knockoutTeams.add(t);
+    if (isTerminal(m.status) && m.winner_team_id != null) {
+      for (const t of [m.home_team_id, m.away_team_id]) if (t != null && t !== m.winner_team_id) knockoutLosers.add(t);
+    }
+  }
+  const knockoutPhase = knockoutTeams.size > 0;
+  const teamsAliveFor = (entryId: string) =>
+    (teamsByEntry.get(entryId) ?? []).filter((t) => knockoutTeams.has(t) && !knockoutLosers.has(t)).length;
 
   // Points-per-game is a fair normalizer ONLY while the group stage is running: every
   // entry is converging on the same 36 games, so it just corrects for whose teams played
@@ -505,19 +521,32 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                       {groupPrizes.get(r.entryId)!.place === 1 ? "🥇" : "🥈"} {groupPrizes.get(r.entryId)!.label} · {groupPrizes.get(r.entryId)!.amount}
                     </span>
                   )}
-                  {games && (
-                    <span className="text-[11px] text-muted-foreground tabular-nums">
-                      {games.played} games played / {games.left} left in this stage
-                      {groupStageOngoing && games.played >= MIN_GAMES_FOR_PPG && (
-                        <>
-                          {" · "}
-                          <span className="font-semibold text-foreground">
-                            {(r.total / games.played).toFixed(1)}
-                          </span>{" "}
-                          pts/game
-                        </>
-                      )}
-                    </span>
+                  {phase.isLocked && knockoutPhase ? (
+                    // Knockouts: how many of your teams are still alive — scans at a glance.
+                    (() => {
+                      const alive = teamsAliveFor(r.entryId);
+                      return (
+                        <span className="text-[11px] tabular-nums text-muted-foreground">
+                          <span className={alive > 0 ? "font-semibold text-foreground" : ""}>{alive}</span>{" "}
+                          {alive === 1 ? "team" : "teams"} left
+                        </span>
+                      );
+                    })()
+                  ) : (
+                    games && (
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {games.played} games played / {games.left} left in this stage
+                        {groupStageOngoing && games.played >= MIN_GAMES_FOR_PPG && (
+                          <>
+                            {" · "}
+                            <span className="font-semibold text-foreground">
+                              {(r.total / games.played).toFixed(1)}
+                            </span>{" "}
+                            pts/game
+                          </>
+                        )}
+                      </span>
+                    )
                   )}
                 </span>
                 <span className="text-right">
