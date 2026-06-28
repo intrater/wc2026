@@ -93,28 +93,30 @@ lives in `lib/outlook/*` (pure, unit-tested) and runs from `app/api/outlook/rout
 - **Tunables** (in-module constants): `N_SIMS` + `SEED` (`run.ts`), bucket cut-points
   (`bucket.ts`), `ELO_K` + `RATING_SCALE` (`strength.ts`), `MAX_GOALS_PER_MATCH` (`bounds.ts`).
   Fixed RNG seed = no run-to-run jitter.
-- **Known approximations / parked:** the **live** knockout sim (`lib/outlook/sim/bracket.ts`)
-  still uses **strength-ordered advancement, not the real FIFA bracket**. The real bracket is
-  now **encoded and ready but DORMANT** in `lib/outlook/sim/bracket2026.ts` (imported by
-  nothing; see "Knockout flip-the-switch" below). The exact-layer knockout ceiling slightly
-  over-counts (safe). Both flagged in the plan doc; revisit when the knockouts start.
+- **Knockout sim: FLIPPED to the real bracket (2026-06-28).** The chance-to-win sim now plays
+  the true FIFA bracket via `lib/outlook/sim/bracket2026.ts` (wired through `loadInput.ts` →
+  `worlds.ts` → `playFixedBracket`, with the legacy strength-reseed `bracket.ts` kept as the
+  pre-bracket fallback). All 16 R32 fixtures validated 0-unmatched against the encoding.
+  `playFixedBracket` is progression-aware: already-played KO games use their real winner and
+  aren't re-emitted; unplayed games are sampled — so it stays correct round by round.
+  The exact-layer knockout ceiling slightly over-counts (safe).
 
-## Knockout flip-the-switch (runbook — say "flip the switch for the knockouts")
+## Knockout flip-the-switch (runbook — ✅ DONE 2026-06-28)
+
+**Status: executed.** The sim plays the real bracket; group stage complete, R32 underway.
+The remaining open item is step 1 for the *later* rounds (verify `mapRound` labels as
+R16/QF/SF/final/3rd-place publish — see below). Original runbook kept for reference.
 
 When the group stage ends, this moves the chance-to-win sim from its strength-reseed
 approximation to the **real bracket**. The structure is encoded, tested, and
-**already validated against live fixtures** in `lib/outlook/sim/bracket2026.ts` (read its
-header). The two functions the flip needs — `assignR32ToSlots()` and `playFixedBracket()` —
-also already exist and are tested. Nothing imports the module yet, so until step 3 the live
-pool is untouched. **The only live files that change are `loadInput.ts` and `worlds.ts`.**
+**validated against live fixtures** in `lib/outlook/sim/bracket2026.ts` (read its
+header). The functions the flip needed — `assignR32ToSlots()` and `playFixedBracket()` —
+live there. **The live files that changed: `loadInput.ts`, `worlds.ts`, `run.ts`.**
 
-**Validation status (2026-06-26):** the first 4 published R32 fixtures (incl. a third-place
-slot, Bosnia 3rd-B → match 81) all matched `bracket2026.ts`. Transcription is confirmed.
-
-**Preconditions:** all 72 group matches terminal (groups complete) AND all 16 R32 fixtures
-populated with real teams. API-Football fills each R32 tie in as both teams clinch, so the
-set completes shortly after the last group games. As of 2026-06-26: 60/72 group done, 4/16
-R32 published. Do nothing until both gates clear.
+**⚠️ Still to verify:** `mapRound` for R16/QF/SF/final/3rd-place. R32 (`"Round of 32"`) is
+confirmed. When the later rounds publish, check `lib/api-football/rounds.ts` maps each
+correctly — an unmapped round sets `needs_attention` (amber `/admin` banner + integrity
+email), so it's caught, but verify + add any label variant promptly so those games score.
 
 1. **Verify `mapRound` for the new rounds.** R32 already confirmed (label `"Round of 32"`,
    `needs_attention: 0`). When R16/QF/SF/final/3rd-place publish, confirm `rounds.ts`
