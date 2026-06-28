@@ -516,19 +516,13 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                     )}
                     {phase.isLocked && outlook && <OutlookBadge bucket={outlook.bucket} clinched={outlook.clinched} />}
                   </span>
-                  {/* One meta line: group-stage prize (if any) · then teams-left (knockouts)
-                      or games played/left (group stage). */}
+                  {/* One meta line: teams-left (knockouts) or games played/left (group stage)
+                      ALWAYS first for easy down-column scanning, then the group-stage prize. */}
                   {phase.isLocked && (() => {
                     const prize = groupPrizes.get(r.entryId);
                     const alive = teamsAliveFor(r.entryId);
                     return (
                       <span className="text-[11px] tabular-nums text-muted-foreground">
-                        {prize && (
-                          <span className="font-bold text-neon">
-                            {prize.place === 1 ? "🥇" : "🥈"} {prize.label}
-                          </span>
-                        )}
-                        {prize && (knockoutPhase || games) && " · "}
                         {knockoutPhase ? (
                           <>
                             <span className={alive > 0 ? "font-semibold text-foreground" : ""}>{alive}</span>{" "}
@@ -549,6 +543,12 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                               )}
                             </>
                           )
+                        )}
+                        {prize && (knockoutPhase || games) && " · "}
+                        {prize && (
+                          <span className="font-bold text-neon">
+                            {prize.place === 1 ? "🥇" : "🥈"} {prize.label}
+                          </span>
                         )}
                       </span>
                     );
