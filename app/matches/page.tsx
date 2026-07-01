@@ -10,6 +10,8 @@ import { NowLine } from "./NowLine";
 import { ScrollToNow } from "./ScrollToNow";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { PageTitle, TitleAccent } from "@/components/PageTitle";
+import { compareForLeaderboard } from "@/lib/scoring/engine";
+import type { Owner } from "@/lib/matches/rooting";
 import { MatchCard, type CalendarMatch, type ViewerPoints } from "./MatchCard";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +27,9 @@ function DayRow({
   myTeamIds,
   pointsByMatch,
   hasEntry,
+  ownersByTeam,
+  viewerEntryId,
+  viewerRank,
 }: {
   day: string;
   matches: CalendarMatch[];
@@ -34,6 +39,9 @@ function DayRow({
   myTeamIds: Set<number>;
   pointsByMatch: Map<number, ViewerPoints[]>;
   hasEntry: boolean;
+  ownersByTeam: Map<number, Owner[]>;
+  viewerEntryId: string | null;
+  viewerRank: number | null;
 }) {
   return (
     <div className="flex gap-3">
@@ -48,6 +56,10 @@ function DayRow({
               myTeamIds={myTeamIds}
               viewerPoints={pointsByMatch.get(m.fixture_id) ?? []}
               showStake={hasEntry}
+              ownersByTeam={ownersByTeam}
+              viewerEntryId={viewerEntryId}
+              viewerRank={viewerRank}
+              isToday={day === today}
             />
           </div>
         ))}
@@ -76,6 +88,7 @@ export default async function MatchesPage() {
   const myTeamIds = new Set<number>();
   const pointsByMatch = new Map<number, ViewerPoints[]>();
   let hasEntry = false;
+  let viewerEntryId: string | null = null;
   if (user) {
     const { data: entry } = await supabase
       .from("entries")
@@ -84,6 +97,7 @@ export default async function MatchesPage() {
       .maybeSingle();
     if (entry?.submitted_at) {
       hasEntry = true;
+      viewerEntryId = entry.id;
       const [{ data: picks }, { data: lines }] = await Promise.all([
         supabase.from("picks").select("team_id").eq("entry_id", entry.id),
         supabase
@@ -107,6 +121,38 @@ export default async function MatchesPage() {
       "fixture_id, stage, group_label, kickoff, status, home_goals, away_goals, home_team_id, away_team_id, live_home_goals, live_away_goals, ht_home_goals, ht_away_goals, live_elapsed, decided_by, venue_name, venue_city, odds_home, odds_away, updated_at",
     )
     .order("kickoff", { ascending: true });
+
+  // "Who's rooting" data: every team's backers (managers who picked it) with their current
+  // rank, so each card can show who's sweating the game and a personalized read for the viewer.
+  const ownersByTeam = new Map<number, Owner[]>();
+  let viewerRank: number | null = null;
+  {
+    const [{ data: scoreRows }, { data: allPicks }] = await Promise.all([
+      supabase.from("scores").select("entry_id, total, underdog_total, upset_total, entries(display_name)"),
+      supabase.from("picks").select("entry_id, team_id"),
+    ]);
+    const rankByEntry = new Map<string, number>();
+    const nameByEntry = new Map<string, string>();
+    (scoreRows ?? [])
+      .map((s) => ({
+        entryId: s.entry_id,
+        name: (s.entries as unknown as { display_name: string } | null)?.display_name ?? "—",
+        total: Number(s.total),
+        underdogTotal: Number(s.underdog_total ?? 0),
+        upsetTotal: Number(s.upset_total ?? 0),
+      }))
+      .sort(compareForLeaderboard)
+      .forEach((s, i) => {
+        rankByEntry.set(s.entryId, i + 1);
+        nameByEntry.set(s.entryId, s.name);
+      });
+    for (const p of allPicks ?? []) {
+      const arr = ownersByTeam.get(p.team_id) ?? [];
+      arr.push({ entryId: p.entry_id, name: nameByEntry.get(p.entry_id) ?? "—", rank: rankByEntry.get(p.entry_id) ?? 999 });
+      ownersByTeam.set(p.team_id, arr);
+    }
+    if (viewerEntryId) viewerRank = rankByEntry.get(viewerEntryId) ?? null;
+  }
 
   const rows: CalendarMatch[] = matches ?? [];
   if (rows.length === 0) {
@@ -182,6 +228,9 @@ export default async function MatchesPage() {
               myTeamIds={myTeamIds}
               pointsByMatch={pointsByMatch}
               hasEntry={hasEntry}
+              ownersByTeam={ownersByTeam}
+              viewerEntryId={viewerEntryId}
+              viewerRank={viewerRank}
             />
           ))}
         </div>
@@ -210,6 +259,10 @@ export default async function MatchesPage() {
                 myTeamIds={myTeamIds}
                 viewerPoints={[]}
                 showStake={hasEntry}
+                ownersByTeam={ownersByTeam}
+                viewerEntryId={viewerEntryId}
+                viewerRank={viewerRank}
+                isToday={false}
               />
             ))}
           </div>

@@ -3,6 +3,7 @@ import type { Match } from "@/lib/db/types";
 import type { TeamInfo } from "@/lib/views/data";
 import { STAGE_LABEL, cardStateFor, type CardState } from "@/lib/matches/day";
 import { LocalTime } from "@/components/LocalTime";
+import { computeRooting, type Backer, type Owner } from "@/lib/matches/rooting";
 
 export type CalendarMatch = Pick<
   Match,
@@ -137,6 +138,39 @@ function TeamSide({
   );
 }
 
+/** One team's backers: flag + count header, then up to 4 names (rank-ordered), "+N more". */
+function BackerCol({
+  flag,
+  count,
+  backers,
+  alignRight,
+}: {
+  flag: string;
+  count: number;
+  backers: Backer[];
+  alignRight?: boolean;
+}) {
+  const shown = backers.slice(0, 4);
+  const more = backers.length - shown.length;
+  return (
+    <div className={`min-w-0 ${alignRight ? "text-right" : ""}`}>
+      <div className="font-bold text-foreground">
+        {flag} {count} {count === 1 ? "backer" : "backers"}
+      </div>
+      {count === 0 ? (
+        <div className="text-muted-foreground/60">nobody</div>
+      ) : (
+        shown.map((b, i) => (
+          <div key={i} className={`truncate ${b.isViewer ? "font-bold text-neon" : "text-muted-foreground"}`}>
+            {b.isViewer ? "You" : b.name} <span className="opacity-70">#{b.rank}</span>
+          </div>
+        ))
+      )}
+      {more > 0 && <div className="text-muted-foreground/70">+{more} more</div>}
+    </div>
+  );
+}
+
 /**
  * One match on the calendar (U5). State machine lives in lib/matches/day.ts;
  * this component only renders. Uses existing tokens only — no new colors.
@@ -147,18 +181,43 @@ export function MatchCard({
   myTeamIds,
   viewerPoints,
   showStake,
+  ownersByTeam,
+  viewerEntryId,
+  viewerRank,
+  isToday,
 }: {
   match: CalendarMatch;
   teamMap: Map<number, TeamInfo>;
   myTeamIds: Set<number>;
   viewerPoints: ViewerPoints[];
   showStake: boolean;
+  ownersByTeam: Map<number, Owner[]>;
+  viewerEntryId: string | null;
+  viewerRank: number | null;
+  isToday: boolean;
 }) {
   const state = cardStateFor(match);
   const home = match.home_team_id ? teamMap.get(match.home_team_id) : undefined;
   const away = match.away_team_id ? teamMap.get(match.away_team_id) : undefined;
   const mine = [home, away].filter((t): t is TeamInfo => !!t && myTeamIds.has(t.id));
   const highlight = showStake && mine.length > 0;
+
+  // "Who's rooting" — shown on today's + in-play games (the ones you're actually watching),
+  // not the whole future schedule. Decided games fall back to the points block instead.
+  const inPlay = state.kind === "live" || state.kind === "halftime" || state.kind === "paused";
+  const decidedKind = ["final", "postponed", "cancelled", "abandoned"].includes(state.kind);
+  const showRooting = !!home && !!away && !decidedKind && (inPlay || isToday);
+  const rooting = showRooting
+    ? computeRooting({
+        homeOwners: ownersByTeam.get(home!.id) ?? [],
+        awayOwners: ownersByTeam.get(away!.id) ?? [],
+        homeName: home!.name,
+        awayName: away!.name,
+        viewerEntryId,
+        viewerRank,
+      })
+    : null;
+  const isKnockout = !!match.stage && match.stage !== "group";
 
   const chip =
     match.stage === "group"
@@ -265,15 +324,33 @@ export function MatchCard({
                 </div>
               );
             })
-          ) : (
+          ) : !rooting ? (
             <p className="truncate font-medium text-foreground">
               {mine.length === 2 ? (
                 "⚡ Both your teams play"
               ) : (
                 <>You picked {mine[0].flag}</>
-
               )}
               {mine.some((t) => t.goalBonus) && " / bonus for pts scored"}
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      {rooting && (rooting.homeCount > 0 || rooting.awayCount > 0) && (
+        <div className="mt-2 border-t border-border pt-2">
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <BackerCol flag={home!.flag} count={rooting.homeCount} backers={rooting.home} />
+            <BackerCol flag={away!.flag} count={rooting.awayCount} backers={rooting.away} alignRight />
+          </div>
+          {isKnockout && (
+            <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+              💀 Loser is out — {rooting.homeCount} lose {home!.name}, {rooting.awayCount} lose {away!.name}
+            </p>
+          )}
+          {rooting.you && (
+            <p className="mt-1.5 rounded-md bg-neon/10 px-2 py-1 text-center text-[11px] font-medium text-foreground">
+              👉 {rooting.you.text}
             </p>
           )}
         </div>
