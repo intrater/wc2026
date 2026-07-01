@@ -112,7 +112,7 @@ describe("buildDigestText", () => {
     expect(text).toContain("No matches today. Rest day.");
   });
 
-  it("marks penalties and postponed results", () => {
+  it("marks penalty-decided results", () => {
     const text = textInput({
       stats: stats({
         results: [
@@ -123,21 +123,13 @@ describe("buildDigestText", () => {
             home: { name: "Brazil", flag: "🇧🇷", goals: 1 },
             away: { name: "Morocco", flag: "🇲🇦", goals: 1 },
             decidedBy: "penalties",
-          },
-          {
-            fixtureId: 2,
-            stage: "group",
-            groupLabel: "B",
-            home: { name: "USA", flag: "🇺🇸", goals: 0 },
-            away: { name: "Wales", flag: "🏴", goals: 0 },
-            decidedBy: null,
-            postponed: true,
+            winner: "Brazil",
+            loser: "Morocco",
           },
         ],
       }),
     });
     expect(text).toContain("🇧🇷 Brazil 1–1 Morocco 🇲🇦 (pens)");
-    expect(text).toContain("🇺🇸 USA vs Wales 🏴 (postponed)");
   });
 
   it("lists upsets by label (points already embedded)", () => {

@@ -171,24 +171,16 @@ function StatsDigest({ stats }: { stats: RecapStats }) {
         <ul className="space-y-0.5">
           {stats.results.map((r) => (
             <li key={r.fixtureId} className="tabular-nums">
-              {r.postponed ? (
-                <span className="text-muted-foreground">
-                  {r.home?.flag} {r.home?.name} vs {r.away?.flag} {r.away?.name} — postponed
-                </span>
-              ) : (
-                <>
-                  {r.home?.flag} {r.home?.name}{" "}
-                  <span className="font-extrabold">
-                    {r.home?.goals}–{r.away?.goals}
-                  </span>{" "}
-                  {r.away?.name} {r.away?.flag}
-                  {r.decidedBy === "penalties" && (
-                    <span className="ml-1 text-xs text-muted-foreground">(pens)</span>
-                  )}
-                  {r.decidedBy === "extra_time" && (
-                    <span className="ml-1 text-xs text-muted-foreground">(aet)</span>
-                  )}
-                </>
+              {r.home?.flag} {r.home?.name}{" "}
+              <span className="font-extrabold">
+                {r.home?.goals}–{r.away?.goals}
+              </span>{" "}
+              {r.away?.name} {r.away?.flag}
+              {r.decidedBy === "penalties" && (
+                <span className="ml-1 text-xs text-muted-foreground">(pens)</span>
+              )}
+              {r.decidedBy === "extra_time" && (
+                <span className="ml-1 text-xs text-muted-foreground">(aet)</span>
               )}
             </li>
           ))}

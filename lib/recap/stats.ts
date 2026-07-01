@@ -3,7 +3,7 @@
 // publicly readable recaps.stats jsonb, so fields are strictly allowlisted:
 // display_name (truncated), rank, totals, deltas — NEVER paid / user_id / email.
 import type { RecapStats, MatchStage, MatchDecidedBy } from "@/lib/db/types";
-import { businessDayOf, formatKickoffTimeET, isResolved } from "@/lib/matches/day";
+import { businessDayOf, formatKickoffTimeET, isTerminal } from "@/lib/matches/day";
 import { movementFor, rankWithTies, type StandingRow } from "@/lib/standings/snapshot";
 
 export const DISPLAY_NAME_MAX = 40; // bounds prompt-injection payload size too
@@ -19,6 +19,7 @@ export interface StatsMatchRow {
   home_goals: number | null;
   away_goals: number | null;
   decided_by: MatchDecidedBy | null;
+  winner_team_id: number | null;
 }
 
 export interface StatsTeam {
@@ -67,23 +68,51 @@ export function buildDayStats(input: BuildStatsInput): RecapStats {
   const { day, dayNumber, matches, teams, entries, snapshots, todaysLines } = input;
 
   const todays = matches.filter((m) => m.kickoff && businessDayOf(m.kickoff) === day);
+  const teamName = (id: number | null) => (id != null ? teams.get(id)?.name ?? null : null);
 
-  const results: RecapStats["results"] = todays
-    .filter((m) => isResolved(m.status))
-    .map((m) => {
-      const home = m.home_team_id != null ? teams.get(m.home_team_id) : undefined;
-      const away = m.away_team_id != null ? teams.get(m.away_team_id) : undefined;
-      const postponed = !["FT", "AET", "PEN", "AWD", "WO"].includes(m.status);
-      return {
-        fixtureId: m.fixture_id,
-        stage: m.stage,
-        groupLabel: m.group_label,
-        home: home ? { name: home.name, flag: home.flag, goals: m.home_goals ?? 0 } : null,
-        away: away ? { name: away.name, flag: away.flag, goals: m.away_goals ?? 0 } : null,
-        decidedBy: m.decided_by,
-        ...(postponed ? { postponed: true } : {}),
-      };
-    });
+  // ONLY games that actually finished (isTerminal). A merely "resolved" status covers
+  // postponed/cancelled too, and a game showing as postponed mid-day may still be played
+  // later — so narrating those as results produced the false "Mexico/Ecuador postponed".
+  // If it isn't in `results`, the recap won't mention it.
+  const finished = todays.filter((m) => isTerminal(m.status));
+
+  const results: RecapStats["results"] = finished.map((m) => {
+    const home = m.home_team_id != null ? teams.get(m.home_team_id) : undefined;
+    const away = m.away_team_id != null ? teams.get(m.away_team_id) : undefined;
+    const loserId = m.winner_team_id != null
+      ? m.winner_team_id === m.home_team_id ? m.away_team_id : m.home_team_id
+      : null;
+    return {
+      fixtureId: m.fixture_id,
+      stage: m.stage,
+      groupLabel: m.group_label,
+      home: home ? { name: home.name, flag: home.flag, goals: m.home_goals ?? 0 } : null,
+      away: away ? { name: away.name, flag: away.flag, goals: m.away_goals ?? 0 } : null,
+      decidedBy: m.decided_by,
+      winner: teamName(m.winner_team_id),
+      loser: teamName(loserId),
+    };
+  });
+
+  // Knockout advancement/elimination — the headline once bracket play starts.
+  const NEXT_ROUND: Record<string, string> = {
+    r32: "the Round of 16",
+    r16: "the quarterfinals",
+    qf: "the semifinals",
+    sf: "the final",
+  };
+  const eliminated: string[] = [];
+  const advanced: Array<{ team: string; to: string }> = [];
+  for (const m of finished) {
+    if (m.stage == null || m.stage === "group" || m.winner_team_id == null) continue;
+    const loserId = m.winner_team_id === m.home_team_id ? m.away_team_id : m.home_team_id;
+    const loser = teamName(loserId);
+    const winner = teamName(m.winner_team_id);
+    if (loser) eliminated.push(loser);
+    const to = NEXT_ROUND[m.stage];
+    if (winner && to) advanced.push({ team: winner, to });
+  }
+  const knockout = eliminated.length > 0 || advanced.length > 0 ? { eliminated, advanced } : undefined;
 
   // Current ranks via the canonical comparator; movement vs the morning snapshot.
   const ranked = rankWithTies(entries);
@@ -156,6 +185,7 @@ export function buildDayStats(input: BuildStatsInput): RecapStats {
     upsets,
     goalBonusStandouts,
     topThree: statEntries.slice(0, 3).map((e) => e.displayName),
+    ...(knockout ? { knockout } : {}),
     ...(lookAhead ? { lookAhead } : {}),
   };
 }

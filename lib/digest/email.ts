@@ -46,7 +46,6 @@ export function ordinal(n: number): string {
 function resultLine(r: RecapStats["results"][number]): string {
   const home = r.home ? `${r.home.flag} ${r.home.name}` : "TBD";
   const away = r.away ? `${r.away.name} ${r.away.flag}` : "TBD";
-  if (r.postponed) return `${home} vs ${away} (postponed)`;
   const suffix = r.decidedBy === "penalties" ? " (pens)" : r.decidedBy === "extra_time" ? " (aet)" : "";
   return `${home} ${r.home?.goals ?? 0}–${r.away?.goals ?? 0} ${away}${suffix}`;
 }

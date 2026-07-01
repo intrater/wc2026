@@ -15,6 +15,7 @@ function matchRow(p: Partial<StatsMatchRow> & { fixture_id: number }): StatsMatc
     home_goals: 2,
     away_goals: 0,
     decided_by: "regulation",
+    winner_team_id: 1, // default row is a 2-0 home win
     ...p,
   };
 }
@@ -98,18 +99,34 @@ describe("buildDayStats", () => {
     expect(stats.topThree).toEqual(["Alice", "Bob"]);
   });
 
-  it("only includes resolved matches from the recap day in results", () => {
+  it("includes only FINISHED matches from the recap day (postponed is excluded, never narrated)", () => {
     const stats = buildDayStats(
       baseInput({
         matches: [
           matchRow({ fixture_id: 100 }), // FT today → included
-          matchRow({ fixture_id: 101, status: "PST" }), // postponed today → flagged
+          matchRow({ fixture_id: 101, status: "PST" }), // postponed today → NOT a result
           matchRow({ fixture_id: 102, kickoff: "2026-06-12T20:00:00Z" }), // other day
         ],
       }),
     );
-    expect(stats.results.map((r) => r.fixtureId)).toEqual([100, 101]);
-    expect(stats.results[1].postponed).toBe(true);
+    expect(stats.results.map((r) => r.fixtureId)).toEqual([100]);
+  });
+
+  it("surfaces knockout advancement/elimination with explicit winner from winner_team_id", () => {
+    const stats = buildDayStats(
+      baseInput({
+        matches: [
+          // R32: level 1-1 but Mexico (team 1) wins on penalties → advances, South Africa out
+          matchRow({ fixture_id: 200, stage: "r32", home_goals: 1, away_goals: 1, decided_by: "penalties", winner_team_id: 1 }),
+        ],
+      }),
+    );
+    expect(stats.results[0].winner).toBe("Mexico");
+    expect(stats.results[0].loser).toBe("South Africa");
+    expect(stats.knockout).toEqual({
+      eliminated: ["South Africa"],
+      advanced: [{ team: "Mexico", to: "the Round of 16" }],
+    });
   });
 
   it("dedupes upsets and goal bonuses across owning entries", () => {

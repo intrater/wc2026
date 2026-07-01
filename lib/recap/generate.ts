@@ -51,7 +51,7 @@ export async function maybeGenerateRecap(
   const { data: allMatches, error: mErr } = await admin
     .from("matches")
     .select(
-      "fixture_id, stage, group_label, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, decided_by",
+      "fixture_id, stage, group_label, kickoff, status, home_team_id, away_team_id, home_goals, away_goals, decided_by, winner_team_id",
     );
   if (mErr) throw new Error(`recap: ${mErr.message}`);
   const matches = (allMatches ?? []) as StatsMatchRow[];

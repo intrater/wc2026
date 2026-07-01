@@ -135,8 +135,18 @@ export interface RecapStats {
     home: { name: string; flag: string; goals: number } | null;
     away: { name: string; flag: string; goals: number } | null;
     decidedBy: MatchDecidedBy | null;
-    postponed?: boolean;
+    winner: string | null; // winning team name (null on a group draw); use this, don't infer from goals
+    loser: string | null; // losing team name (null on a group draw)
   }>;
+  /**
+   * Knockout advancement summary for the day (absent during the group stage or on a
+   * day with no knockout results). Once bracket play starts this is the biggest
+   * storyline: who got eliminated, and who moved on to which round.
+   */
+  knockout?: {
+    eliminated: string[]; // team names knocked out today
+    advanced: Array<{ team: string; to: string }>; // e.g. { team: "Mexico", to: "the Round of 16" }
+  };
   entries: Array<{
     entryId: string;
     displayName: string; // truncated to 40 chars; allowlist: never paid/user_id/email
