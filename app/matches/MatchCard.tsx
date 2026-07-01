@@ -38,6 +38,14 @@ export interface ViewerPoints {
 /** 2× the poll interval: beyond this a "live" score may be stale. */
 const STALE_MS = 6 * 60 * 1000;
 
+/** What the winner of a knockout tie advances to (for the stakes line). */
+const ADVANCES_TO: Record<string, string> = {
+  r32: "the Round of 16",
+  r16: "the quarterfinals",
+  qf: "the semifinals",
+  sf: "the final",
+};
+
 function StatusBadge({ state, updatedAt }: { state: CardState; updatedAt: string }) {
   const base = "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide";
   switch (state.kind) {
@@ -345,7 +353,12 @@ export function MatchCard({
           </div>
           {isKnockout && (
             <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-              💀 Loser is out — {rooting.homeCount} lose {home!.name}, {rooting.awayCount} lose {away!.name}
+              💀 Loser goes home
+              {match.stage === "final"
+                ? " — winner lifts the cup"
+                : match.stage && ADVANCES_TO[match.stage]
+                  ? ` — winner into ${ADVANCES_TO[match.stage]}`
+                  : ""}
             </p>
           )}
           {rooting.you && (
