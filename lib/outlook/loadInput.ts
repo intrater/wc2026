@@ -60,8 +60,13 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
   const terminalGroupByGroup = new Map<string, number>();
   const remainingGroupByTeam = new Map<number, number>();
   const knockoutLosers = new Set<number>();
+  const advancedTeams = new Set<number>(); // the real 32 drawn into the R32 (source of truth for "alive")
   const remainingGroupFixtures: RemainingGroupFixture[] = [];
   for (const m of matchesRes.data ?? []) {
+    if (m.stage === "r32") {
+      if (m.home_team_id != null) advancedTeams.add(m.home_team_id);
+      if (m.away_team_id != null) advancedTeams.add(m.away_team_id);
+    }
     if (m.stage === "group") {
       if (isTerminal(m.status)) {
         if (m.group_label) terminalGroupByGroup.set(m.group_label, (terminalGroupByGroup.get(m.group_label) ?? 0) + 1);
@@ -93,11 +98,17 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
     if (last != null) lastInGroup.add(last);
   }
 
+  // Once the R32 is drawn, advancement is a fact: a team is alive only if it's in the real
+  // bracket and hasn't lost a knockout game. Before that (group stage), fall back to the
+  // last-in-group heuristic. (The old code used lastInGroup alone, which wrongly kept
+  // non-advancing 3rd-place teams "alive" — they're neither KO losers nor last in group.)
+  const r32Published = advancedTeams.size > 0;
   const futureByTeam = new Map<number, TeamFuture>();
   for (const [teamId, tier] of scoring.tierByTeam) {
     const group = groupByTeam.get(teamId) ?? null;
     const groupComplete = group != null && (terminalGroupByGroup.get(group) ?? 0) >= GROUP_COMPLETE_MATCHES;
-    const eliminated = knockoutLosers.has(teamId) || lastInGroup.has(teamId);
+    const eliminated =
+      knockoutLosers.has(teamId) || (r32Published ? !advancedTeams.has(teamId) : lastInGroup.has(teamId));
     futureByTeam.set(teamId, {
       tier,
       remainingGroupGames: remainingGroupByTeam.get(teamId) ?? 0,
