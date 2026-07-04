@@ -7,6 +7,7 @@ export async function sendEmail(
   to: string,
   subject: string,
   text: string,
+  attachments?: { filename: string; content: Buffer }[],
 ): Promise<{ sent: boolean; reason?: string }> {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
@@ -25,7 +26,7 @@ export async function sendEmail(
       secure: false, // STARTTLS on 587
       auth: { user, pass },
     });
-    await transport.sendMail({ from, to, subject, text });
+    await transport.sendMail({ from, to, subject, text, attachments });
     return { sent: true };
   } catch (e) {
     return { sent: false, reason: e instanceof Error ? e.message : "send_failed" };

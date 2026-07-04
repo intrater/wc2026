@@ -8,6 +8,10 @@
     {
       "path": "/api/outlook",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/backup",
+      "schedule": "0 6 * * *"
     }
   ]
 }
