@@ -11,7 +11,7 @@ import { summarizeTeamMatches, type TeamMatchRow, type TeamMatchSummary } from "
 import type { TeamInfo } from "@/lib/views/data";
 import { PageTitle } from "@/components/PageTitle";
 import { LocalTime } from "@/components/LocalTime";
-import { BUCKET_EMOJI, BUCKET_LABEL } from "@/lib/outlook/rationale";
+import { BUCKET_LABEL } from "@/lib/outlook/rationale";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,6 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="space-y-3 pt-6 text-center">
         <PageTitle>{entry.display_name}</PageTitle>
-        <div className="text-4xl">🔒</div>
         <p className="text-muted-foreground">This roster is hidden until the tournament kicks off.</p>
         <Link href="/" className="text-sm font-semibold text-neon hover:underline">Back to leaderboard</Link>
       </div>
@@ -123,39 +122,24 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-5">
       <div className="text-center">
-        <PageTitle sub={<>Every pick and every point, team by team.</>}>
-          {entry.display_name}
-        </PageTitle>
+        <PageTitle>{entry.display_name}</PageTitle>
         {score && (
-          <p className="mt-2 text-muted-foreground">
-            <span className="text-3xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span> pts
+          <p className="mt-3">
+            <span className="text-4xl font-extrabold tabular-nums text-neon text-glow">{score.total}</span>
+            <span className="ml-1.5 text-sm text-muted-foreground">pts</span>
           </p>
         )}
         {outlook && (
-          <div className="mx-auto mt-3 max-w-sm rounded-xl border border-border bg-card p-3 text-sm shadow-sm">
-            <p className="font-bold">
-              {outlook.clinched ? "🔒" : BUCKET_EMOJI[outlook.bucket as string] ?? ""}{" "}
-              <span className={outlook.clinched || outlook.bucket === "front_runner" ? "text-neon" : ""}>
-                {outlook.clinched ? "Clinched" : BUCKET_LABEL[outlook.bucket as string] ?? ""}
-              </span>{" "}
-              <span className="font-normal text-muted-foreground">· chance to win it all</span>
-            </p>
-            {outlook.rationale && (
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{outlook.rationale}</p>
-            )}
-            <p className="mt-1.5 text-[10px] text-muted-foreground">
-              Rough projection from a Monte Carlo simulation ·{" "}
-              <Link href="/how-its-built#chance-to-win" className="text-neon hover:underline">
-                how it works
-              </Link>
-            </p>
-          </div>
+          <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
+            <span className="font-semibold uppercase tracking-[0.14em] text-foreground">
+              {outlook.clinched ? "Clinched" : BUCKET_LABEL[outlook.bucket as string] ?? ""}
+            </span>
+            {outlook.rationale && <> — {stripEmoji(outlook.rationale)}</>}{" "}
+            <Link href="/how-its-built#chance-to-win" className="whitespace-nowrap text-neon hover:underline">
+              how it works
+            </Link>
+          </p>
         )}
-        <p className="mt-3">
-          <Link href="/tiers" className="text-sm font-semibold text-neon hover:underline">
-            Tier list · who picked each team →
-          </Link>
-        </p>
       </div>
 
       <TodayAndNext rows={matchRows} teamIds={teamIds} teamMap={teamMap} isLocked={phase.isLocked} />
@@ -180,34 +164,35 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
             });
           const log = buildGameLog(teamLines, orderedGames);
           return (
-            <div key={p.tier_no} className={`rounded-xl border border-border bg-card p-3 shadow-sm transition-opacity ${out ? "opacity-50" : ""}`}>
-              <div className="flex items-center gap-2">
+            <div key={p.tier_no} className={`rounded-xl border border-border bg-card p-3 shadow-sm transition-opacity ${out ? "opacity-45" : ""}`}>
+              <div className="flex items-center gap-2.5">
                 <span className="text-2xl">{team?.flag}</span>
-                <span className="flex-1">
+                <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
                     <span className="font-semibold">{team?.name}</span>
                     {out && (
-                      <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                         Out
                       </span>
                     )}
                   </span>
-                  <span className="text-xs text-muted-foreground"><span className="font-mono text-neon">{String(p.tier_no).padStart(2, "0")}</span> · {TIER_LABELS[p.tier_no]}</span>
+                  <span className="block text-xs text-muted-foreground">Tier {p.tier_no} · {TIER_LABELS[p.tier_no]}</span>
                   <TeamStatusLine summary={summaryByTeam.get(p.team_id)} teamMap={teamMap} today={today} />
                 </span>
-                <span className="text-lg font-extrabold tabular-nums text-neon">{total}</span>
+                <span className="text-lg font-bold tabular-nums">{total}</span>
               </div>
               {log.items.length > 0 ? (
-                <div className="mt-1 border-t border-border pt-1 text-xs leading-relaxed text-muted-foreground">
+                <div className="mt-2 border-t border-border/60 pt-1.5 text-xs leading-relaxed text-muted-foreground">
                   {log.items.map((it, i) => (
                     <span key={i}>
-                      {i > 0 && <span className="text-border"> · </span>}
-                      {it.label} <span className="font-semibold tabular-nums text-foreground">({it.pts})</span>
+                      {i > 0 && <span className="opacity-40"> · </span>}
+                      {it.label}
+                      {it.pts !== 0 && <span className="tabular-nums text-foreground/90"> +{it.pts}</span>}
                     </span>
                   ))}
                 </div>
               ) : (
-                <div className="mt-1 border-t border-border pt-1 text-xs text-muted-foreground">
+                <div className="mt-2 border-t border-border/60 pt-1.5 text-xs text-muted-foreground">
                   No points yet
                 </div>
               )}
@@ -216,30 +201,40 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
         })}
       </div>
 
-      {score != null && (
-        <div className="rounded-xl border border-border bg-card p-3 text-center text-sm shadow-sm">
-          <p>
-            <span className="text-muted-foreground">All 12 teams add up to </span>
-            <span className="text-lg font-extrabold tabular-nums text-neon">{grandTotal}</span>
-            <span className="text-muted-foreground"> pts</span>
+      <div className="pb-2 text-center">
+        <p className="text-sm">
+          <Link href="/tiers" className="font-semibold text-neon hover:underline">
+            Tier list · who picked each team →
+          </Link>
+        </p>
+        {score != null && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            All 12 teams add up to{" "}
+            <span className="font-semibold tabular-nums text-foreground">{grandTotal}</span>
             {reconciles ? (
-              <span className="text-muted-foreground">
+              <>
                 {" "}— your exact total on the{" "}
-                <Link href="/" className="font-semibold text-neon hover:underline">leaderboard</Link>.
-              </span>
+                <Link href="/" className="text-neon hover:underline">leaderboard</Link>, scored by
+                the same engine that ranks the pool.{" "}
+                <Link href="/how-its-built" className="whitespace-nowrap text-neon hover:underline">how it&apos;s built</Link>
+              </>
             ) : (
               <span className="text-destructive"> — recalculating…</span>
             )}
           </p>
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Every point above is produced by the same scoring engine that ranks the pool — a pure
-            recompute from the actual results, nothing entered by hand.{" "}
-            <Link href="/how-its-built" className="text-neon hover:underline">how it&apos;s built</Link>
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
+}
+
+/** The stored outlook rationale embeds flag/lock emoji; this page renders it as plain prose. */
+function stripEmoji(s: string): string {
+  return s
+    .replace(/[\p{Extended_Pictographic}\u{E0020}-\u{E007F}\u{FE0F}\u{200D}]/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([.,;])/g, "$1")
+    .trim();
 }
 
 /** Drop the trailing "(+N)" some engine labels carry (e.g. "Upset draw (+2.5)"),
@@ -398,21 +393,25 @@ function TodayAndNext({
     <div className="rounded-xl border border-border bg-card p-3 text-sm shadow-sm">
       {todays.length > 0 && (
         <div>
-          <span className={`font-bold ${todays.some((m) => isLive(m.status)) ? "text-neon" : "text-muted-foreground"}`}>
-            Today:
-          </span>{" "}
-          {todays.map((m, i) => (
-            <span key={m.fixture_id}>
-              {i > 0 && "  ·  "}
+          <p className={`text-[10px] font-bold uppercase tracking-[0.15em] ${todays.some((m) => isLive(m.status)) ? "text-neon" : "text-muted-foreground"}`}>
+            Today
+          </p>
+          {todays.map((m) => (
+            <p key={m.fixture_id} className="mt-0.5">
               {describe(m)}
-            </span>
+            </p>
           ))}
         </div>
       )}
       {next?.kickoff && (
-        <div className={todays.length > 0 ? "mt-1" : ""}>
-          <span className="font-bold text-muted-foreground">Next:</span> {describe(next)}{" "}
-          <span className="text-muted-foreground">({NEXT_DAY.format(new Date(next.kickoff))})</span>
+        <div className={todays.length > 0 ? "mt-2.5" : ""}>
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+            Next
+          </p>
+          <p className="mt-0.5">
+            {describe(next)}{" "}
+            <span className="text-muted-foreground">({NEXT_DAY.format(new Date(next.kickoff))})</span>
+          </p>
         </div>
       )}
     </div>
