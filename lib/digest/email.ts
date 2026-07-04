@@ -19,7 +19,7 @@ export function hookFor(stats: RecapStats): string {
 export function digestSubject(stats: RecapStats): string {
   const leader = stats.topThree[0];
   // Subject hook skips the point detail (that lives in the body) — e.g.
-  // "WC2026 Day 1 digest: South Korea shocker & Josh Bortnick in 1st place".
+  // "WC2026 Day 1 digest: South Korea shocker & Sam Example in 1st place".
   const hook =
     stats.upsets.length > 0
       ? `${stats.upsets[0].teamName} shocker`
