@@ -18,7 +18,12 @@ export async function sendMagicLink(
   formData: FormData,
 ): Promise<MagicLinkState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const displayName = String(formData.get("display_name") ?? "").trim();
+  // Strip control + bidi-override chars and cap length, matching the DB CHECK in 0015 so
+  // the user sees a clean error rather than a constraint violation.
+  const displayName = String(formData.get("display_name") ?? "")
+    .replace(/[\p{Cc}‪-‮⁦-⁩]/gu, "")
+    .trim()
+    .slice(0, 40);
 
   if (!email || !email.includes("@")) {
     return { error: "Enter a valid email." };

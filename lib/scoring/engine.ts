@@ -327,7 +327,10 @@ export function recompute(input: ScoringInput): ScoringResult {
   const scores: ComputedScore[] = [];
 
   for (const entry of input.entries) {
-    const picks = input.picksByEntry.get(entry.id) ?? [];
+    // De-dupe defensively: a team must never be counted twice for one entry, even if a
+    // malformed picks row (e.g. a direct REST write bypassing the server action) slipped a
+    // duplicate team into the roster. The DB now enforces unique(entry_id, team_id) too.
+    const picks = [...new Set(input.picksByEntry.get(entry.id) ?? [])];
     let total = 0;
     let groupStageTotal = 0;
     let underdogTotal = 0;

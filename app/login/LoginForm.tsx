@@ -69,12 +69,12 @@ export function LoginForm({
         {mode === "join" && (
           <div className="space-y-1.5">
             <Label htmlFor="display_name">Your name</Label>
-            <Input id="display_name" name="display_name" required placeholder="John Intrater" className="h-11 text-base" />
+            <Input id="display_name" name="display_name" required maxLength={40} placeholder="John Intrater" className="h-11 text-base" />
           </div>
         )}
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" required placeholder="john.intrater@gmail.com" className="h-11 text-base" />
+          <Input id="email" name="email" type="email" required maxLength={254} placeholder="john.intrater@gmail.com" className="h-11 text-base" />
         </div>
         {state.error && <p className="text-sm text-destructive">{state.error}</p>}
         <button

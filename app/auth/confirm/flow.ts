@@ -20,8 +20,12 @@ export function authMethodFor(p: {
   return "none";
 }
 
-/** Only allow same-origin relative redirects (no open redirect via ?next=https://evil). */
+/**
+ * Only allow same-origin relative redirects (no open redirect via ?next=https://evil).
+ * Must start with a single "/" followed by neither "/" nor "\" — the WHATWG URL parser
+ * normalizes "\" to "/" for http(s), so "/\evil.com" would otherwise resolve off-site.
+ */
 export function safeNext(next: string | null): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/pick";
+  if (!next || !/^\/(?![/\\])/.test(next)) return "/pick";
   return next;
 }

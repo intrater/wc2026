@@ -24,6 +24,7 @@ export async function sendEmail(
       host,
       port: Number(process.env.SMTP_PORT ?? 587),
       secure: false, // STARTTLS on 587
+      requireTLS: true, // refuse to send if STARTTLS can't be negotiated (no plaintext fallback)
       auth: { user, pass },
     });
     await transport.sendMail({ from, to, subject, text, attachments });
