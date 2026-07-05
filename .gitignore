@@ -37,3 +37,4 @@ yarn-error.log*
 /supabase/.branches
 /supabase/.temp
 .env*
+scripts/send-digest-sample.mts
