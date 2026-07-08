@@ -7,6 +7,7 @@ export interface OutlookRow {
   bucket: string;
   clinched: boolean;
   win_share: number | null;
+  money_share: number | null; // P(finish top 2 — champion or runner-up)
   rationale: string | null;
   sims: number;
 }

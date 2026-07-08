@@ -31,7 +31,7 @@ export async function runOutlook(
   // Strength = odds prior, repriced by results so far (a losing favorite drifts down for the
   // future games that have no live odds yet).
   const ratings = applyResultAdjustments(buildRatings(data.scoring.tierByTeam, data.oddsByTeam), data.scoring.matches);
-  const winShares = simulateWinShares(
+  const { winShares, moneyShares } = simulateWinShares(
     {
       tierByTeam: data.scoring.tierByTeam,
       entries: data.scoring.entries,
@@ -53,19 +53,24 @@ export async function runOutlook(
     const exact = exactById.get(e.entryId)!;
     let bucket: string;
     let winShare: number | null;
+    let moneyShare: number | null;
     let clinched = false;
 
     if (exact.bucket === "no_shot") {
       bucket = "no_shot";
       winShare = 0;
+      moneyShare = 0;
     } else if (exact.bucket === "clinched") {
       bucket = "front_runner";
       winShare = 1;
+      moneyShare = 1;
       clinched = true;
     } else {
       const ws = winShares.get(e.entryId) ?? 0;
       bucket = bucketForWinShare(ws, fieldSize);
       winShare = ws;
+      // Money = top-2; guaranteed ≥ win share. Max() guards float noise at the extremes.
+      moneyShare = Math.max(ws, moneyShares.get(e.entryId) ?? 0);
     }
 
     // rationale inputs (deterministic from the same numbers)
@@ -94,7 +99,7 @@ export async function runOutlook(
       coLeaders,
     });
 
-    return { entry_id: e.entryId, bucket, clinched, win_share: winShare, rationale, sims: N_SIMS };
+    return { entry_id: e.entryId, bucket, clinched, win_share: winShare, money_share: moneyShare, rationale, sims: N_SIMS };
   });
 
   await persistOutlook(admin, rows);

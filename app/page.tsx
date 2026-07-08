@@ -17,6 +17,8 @@ import { hookFor } from "@/lib/digest/email";
 import { BUCKET_EMOJI, BUCKET_LABEL } from "@/lib/outlook/rationale";
 import { loadRaceData } from "@/lib/race/load";
 import { RaceCard } from "@/components/RaceCard";
+import { loadFinishRace } from "@/lib/race/loadFinish";
+import { RaceToFinishCard } from "@/components/RaceToFinishCard";
 import { computeGroupPrizes } from "@/lib/leaderboard/groupPrize";
 import { computePayouts, formatUsd, type PayoutSplit } from "@/lib/payouts/calc";
 import type { Recap, RecapStats } from "@/lib/db/types";
@@ -344,9 +346,11 @@ function MatchupCenter({ state, kickoff }: { state: CardState; kickoff: string |
   }
 }
 
-/** Global rooting guide, truncated to the top contenders with a link to the full /race
- *  page. Renders nothing pre-results or once the group stage is over (loadRaceData → null). */
+/** The race card. In the knockouts it's "Race to the Finish" (chance to finish in the money);
+ *  during the group stage it's the group-money rooting guide. Renders nothing pre-results. */
 async function TheRace() {
+  const finish = await loadFinishRace();
+  if (finish && finish.contenders.length > 0) return <RaceToFinishCard data={finish} />;
   const data = await loadRaceData();
   if (!data || data.contenders.length === 0) return null;
   return <RaceCard data={data} />;
