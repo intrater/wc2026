@@ -4,6 +4,8 @@
 // badges use: money_share = P(finish top 2), win_share = P(finish 1st). Pure + unit-tested;
 // loader in loadFinish.ts, card in components/RaceToFinishCard.tsx.
 
+import type { FinalScenarios } from "./finalScenarios";
+
 export interface FinishTeam {
   flag: string;
   name: string;
@@ -28,6 +30,9 @@ export interface FinishRaceData {
   inContention: number; // entries with a non-trivial shot at the money
   groupWinner: string | null; // already banked the group-stage top prize
   groupRunnerUp: string | null;
+  // Exact end-game: set once only the final (± third place) remains AND the money is fully
+  // determined by who wins it (finalScenarios.ts). Null/absent → show the model view only.
+  finalScenarios?: FinalScenarios | null;
 }
 
 export interface FinishRaceInput {

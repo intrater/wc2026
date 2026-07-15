@@ -1,8 +1,9 @@
-// Refreshes cached Match Winner odds for imminent group fixtures, so the simulation uses the
+// Refreshes cached Match Winner odds for imminent fixtures, so the simulation uses the
 // freshest market read for games about to be played (where a favorite that lost is already
 // repriced). Bounded: only fixtures kicking off soon whose odds are missing or stale, capped
-// per run — so after the first fill it's a handful of API calls at most. Knockout fixtures are
-// skipped (teams unknown until the bracket is drawn → no odds yet).
+// per run — so after the first fill it's a handful of API calls at most. Covers group AND
+// knockout fixtures — a knockout game qualifies once both teams are known (before that the
+// market doesn't exist anyway).
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getMatchOdds } from "@/lib/api-football/client";
 
@@ -16,12 +17,12 @@ export async function refreshUpcomingOdds(
 ): Promise<{ fetched: number; skipped: number }> {
   const { data, error } = await admin
     .from("matches")
-    .select("fixture_id, kickoff, status, odds_updated_at")
-    .eq("stage", "group");
+    .select("fixture_id, kickoff, status, odds_updated_at, home_team_id, away_team_id");
   if (error) throw new Error(`refreshUpcomingOdds: ${error.message}`);
 
   const candidates = (data ?? [])
     .filter((m) => {
+      if (m.home_team_id == null || m.away_team_id == null) return false; // teams not drawn yet
       if (!m.kickoff || (m.status !== "NS" && m.status !== "TBD")) return false;
       const kickoff = new Date(m.kickoff).getTime();
       if (kickoff <= now || kickoff - now > WINDOW_MS) return false; // upcoming, within window

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { FinishRaceData, FinishContender, FinishTeam } from "@/lib/race/finish";
+import type { FinalScenario } from "@/lib/race/finalScenarios";
 
 const HOME_LIMIT = 4;
 
@@ -37,14 +38,39 @@ function ContenderRow({ c, top }: { c: FinishContender; top: boolean }) {
   );
 }
 
+function ScenarioRow({ s }: { s: FinalScenario }) {
+  return (
+    <li className="rounded-lg border border-border bg-background/60 px-3 py-2">
+      <p className="text-sm font-semibold">
+        If {s.winner.flag} {s.winner.name} wins the final
+      </p>
+      {s.split ? (
+        <p className="mt-0.5 text-sm leading-snug">
+          🏆 {s.champion.name} &amp; {s.runnerUp.name} finish exactly tied — champion and
+          runner-up prizes split.
+        </p>
+      ) : (
+        <p className="mt-0.5 text-sm leading-snug">
+          🏆 <span className="font-semibold">{s.champion.name}</span>{" "}
+          <span className="text-muted-foreground">({s.champion.total} pts · {s.champion.prize})</span>
+          {" · "}🥈 <span className="font-semibold">{s.runnerUp.name}</span>{" "}
+          <span className="text-muted-foreground">({s.runnerUp.total} pts · {s.runnerUp.prize})</span>
+        </p>
+      )}
+    </li>
+  );
+}
+
 /**
  * "Race to the Finish" — the knockout-stage chase for the two overall prizes (champion +
  * runner-up). Truncated to the top contenders on the home page, with the full field on /race.
- * Renders nothing until the knockouts start (loadFinishRace → null).
+ * Renders nothing until the knockouts start (loadFinishRace → null). Once only the final is
+ * left (and the money is provably winner-determined), the exact scenarios lead the card.
  */
 export function RaceToFinishCard({ data, full = false }: { data: FinishRaceData; full?: boolean }) {
   const shown = full ? data.contenders : data.contenders.slice(0, HOME_LIMIT);
   const hiddenContenders = data.inContention - shown.length;
+  const scenarios = data.finalScenarios ?? null;
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -52,6 +78,24 @@ export function RaceToFinishCard({ data, full = false }: { data: FinishRaceData;
         <h2 className="font-bold">Race to the Finish</h2>
         <span className="text-xs text-muted-foreground">{data.aliveCount} teams left</span>
       </div>
+
+      {scenarios && (
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-neon">
+            It all comes down to the final
+          </p>
+          <ul className="mt-2 space-y-2">
+            {scenarios.scenarios.map((s) => (
+              <ScenarioRow key={s.winner.name} s={s} />
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            Exact outcomes, not odds — every remaining result has been played through the
+            scoring engine.
+            {scenarios.thirdPlaceGameIrrelevant && " The third-place game can't change the money."}
+          </p>
+        </div>
+      )}
 
       <p className="px-4 pt-2.5 text-xs leading-relaxed text-muted-foreground">
         Chance to finish in the money — <span className="font-semibold text-foreground">champion or runner-up</span>.

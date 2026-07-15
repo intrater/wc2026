@@ -4,10 +4,13 @@
 // eliminated/alive) — the group-stage "The Race" (load.ts) covers that phase instead.
 import { createClient } from "@/lib/supabase/server";
 import { loadTeamMap } from "@/lib/views/data";
-import { isTerminal } from "@/lib/matches/day";
+import { isTerminal, isNotOccurring } from "@/lib/matches/day";
 import { computeGroupPrizes } from "@/lib/leaderboard/groupPrize";
 import { computePayouts, formatUsd, type PayoutSplit } from "@/lib/payouts/calc";
+import { loadScoringInput } from "@/lib/scoring/persist";
+import type { MatchStage } from "@/lib/db/types";
 import { buildFinishRace, type FinishRaceData } from "./finish";
+import { buildFinalScenarios } from "./finalScenarios";
 
 const DEFAULT_SPLIT: PayoutSplit = { champion: 0.5, runner_up: 0.25, group_leader: 0.15, group_runner_up: 0.1 };
 
@@ -88,7 +91,7 @@ export async function loadFinishRace(): Promise<FinishRaceData | null> {
 
   const teamSimple = new Map([...teamMap].map(([id, t]) => [id, { name: t.name, flag: t.flag, tier: t.tier }]));
 
-  return buildFinishRace({
+  const race = buildFinishRace({
     entries,
     picksByEntry,
     aliveTeams,
@@ -96,4 +99,30 @@ export async function loadFinishRace(): Promise<FinishRaceData | null> {
     groupWinner,
     groupRunnerUp,
   });
+
+  // End-game: when only the final (± third place) is left, replace guesswork with the exact
+  // "if X wins" outcomes. buildFinalScenarios returns null until that's provably the case.
+  const remaining = (ko ?? [])
+    .filter(
+      (m) =>
+        m.stage != null && !isTerminal(m.status) && !isNotOccurring(m.status) &&
+        m.home_team_id != null && m.away_team_id != null,
+    )
+    .map((m) => ({
+      stage: m.stage as MatchStage,
+      homeTeamId: m.home_team_id as number,
+      awayTeamId: m.away_team_id as number,
+    }));
+  if (remaining.length > 0 && remaining.every((m) => m.stage === "final" || m.stage === "third_place")) {
+    race.finalScenarios = buildFinalScenarios({
+      scoring: await loadScoringInput(supabase),
+      remaining,
+      nameByEntry: nameById,
+      teamMeta: teamSimple,
+      championPrize: formatUsd(payouts.championCents),
+      runnerUpPrize: formatUsd(payouts.runnerUpCents),
+    });
+  }
+
+  return race;
 }

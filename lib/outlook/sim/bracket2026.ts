@@ -218,6 +218,24 @@ export function assignR32ToSlots(
 /** Sorted team-pair key, for looking up an already-played knockout result. */
 export const pairKey = (a: number, b: number) => [a, b].sort((x, y) => x - y).join("-");
 
+/** Cached de-vigged 1X2 for an unplayed knockout fixture. `homeTeamId` records which team
+ *  the fixture's pHome refers to, since the sim's own home/away orientation may differ. */
+export interface KnockoutOdds {
+  homeTeamId: number;
+  pHome: number;
+  pDraw: number;
+  pAway: number;
+}
+
+/** Market P(`home` advances) from 1X2 odds: their win prob plus the draw resolved to
+ *  extra-time/penalties, split in proportion to the two win probs. */
+function advanceProbFromOdds(odds: KnockoutOdds, home: number): number {
+  const pWin = odds.homeTeamId === home ? odds.pHome : odds.pAway;
+  const pLose = odds.homeTeamId === home ? odds.pAway : odds.pHome;
+  const denom = pWin + pLose;
+  return denom > 0 ? pWin + odds.pDraw * (pWin / denom) : 0.5;
+}
+
 /**
  * Play the REAL fixed bracket for one simulated world. Each R32 tie and each downstream
  * node either:
@@ -236,6 +254,8 @@ export function playFixedBracket(
   ratings: Map<number, number>,
   rng: () => number,
   terminalWinnerByPair: Map<string, number> = new Map(),
+  // Live market odds for unplayed fixtures (pairKey → 1X2) — override strength when present.
+  oddsByPair: Map<string, KnockoutOdds> = new Map(),
   sampleMatch: typeof sampleKnockoutMatch = sampleKnockoutMatch,
 ): ScoringMatch[] {
   const rate = (id: number) => ratings.get(id) ?? -99;
@@ -250,7 +270,9 @@ export function playFixedBracket(
     if (known != null) {
       winner = known; // already played: use the real result, don't re-emit (avoids double-count)
     } else {
-      const m = sampleMatch(fid--, stage, home, away, rate(home), rate(away), rng);
+      const odds = oddsByPair.get(pairKey(home, away));
+      const pHomeAdvance = odds ? advanceProbFromOdds(odds, home) : undefined;
+      const m = sampleMatch(fid--, stage, home, away, rate(home), rate(away), rng, pHomeAdvance);
       out.push(m);
       winner = m.winnerTeamId!;
     }

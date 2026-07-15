@@ -11,7 +11,7 @@ import {
 import { mulberry32 } from "./rng";
 import { sampleGroupMatch } from "./match";
 import { simulateBracket } from "./bracket";
-import { playFixedBracket, type AssignedTie } from "./bracket2026";
+import { playFixedBracket, type AssignedTie, type KnockoutOdds } from "./bracket2026";
 
 export interface RemainingGroupFixture {
   fixtureId: number;
@@ -34,6 +34,8 @@ export interface SimInput {
   // sim plays the REAL bracket instead of strength-reseeding qualifiers.
   realR32?: AssignedTie[];
   terminalWinnerByPair?: Map<string, number>;
+  // Live de-vigged 1X2 for unplayed knockout fixtures (pairKey → odds) — overrides strength.
+  koOddsByPair?: Map<string, KnockoutOdds>;
 }
 
 export interface SimShares {
@@ -70,7 +72,7 @@ export function simulateWinShares(input: SimInput, nSims: number, seed: number):
     if (input.realR32) {
       // Group stage done + bracket drawn → play the REAL fixed bracket (played games use
       // their actual result; unplayed games are sampled). No qualifier re-seeding.
-      matches.push(...playFixedBracket(input.realR32, input.ratings, rng, input.terminalWinnerByPair));
+      matches.push(...playFixedBracket(input.realR32, input.ratings, rng, input.terminalWinnerByPair, input.koOddsByPair));
     } else {
       // Pre-bracket fallback: complete the groups and seed a strength-ordered bracket.
       const placement = computeGroupPlacement(matches);

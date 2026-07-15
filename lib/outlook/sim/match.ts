@@ -59,8 +59,10 @@ export function sampleKnockoutMatch(
   ratingHome: number,
   ratingAway: number,
   rng: () => number,
+  // Live-market P(home advances), when the fixture has cached 1X2 odds — overrides strength.
+  pHomeAdvance?: number,
 ): ScoringMatch {
-  const homeWins = rng() < knockoutWinProbHome(ratingHome, ratingAway);
+  const homeWins = rng() < (pHomeAdvance ?? knockoutWinProbHome(ratingHome, ratingAway));
   const winner = homeWins ? home : away;
   const toPens = rng() < KNOCKOUT_PENALTY_RATE;
 

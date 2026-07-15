@@ -41,6 +41,7 @@ export async function runOutlook(
       ratings,
       realR32: data.realR32,
       terminalWinnerByPair: data.terminalWinnerByPair,
+      koOddsByPair: data.koOddsByPair,
     },
     N_SIMS,
     SEED,

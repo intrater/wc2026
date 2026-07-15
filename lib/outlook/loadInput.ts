@@ -8,7 +8,7 @@ import { orderedGroupStandings, type ScoringInput } from "@/lib/scoring/engine";
 import { isTerminal, isNotOccurring } from "@/lib/matches/day";
 import type { EntryState, TeamFuture } from "./bounds";
 import type { RemainingGroupFixture } from "./sim/worlds";
-import { assignR32ToSlots, pairKey, type AssignedTie, type Group, type Placement } from "./sim/bracket2026";
+import { assignR32ToSlots, pairKey, type AssignedTie, type Group, type KnockoutOdds, type Placement } from "./sim/bracket2026";
 
 const GROUP_COMPLETE_MATCHES = 6;
 const KO_STAGES = new Set(["r32", "r16", "qf", "sf", "final", "third_place"]);
@@ -26,6 +26,7 @@ export interface OutlookData {
   // to strength-reseeding. terminalWinnerByPair holds already-played knockout results.
   realR32?: AssignedTie[];
   terminalWinnerByPair: Map<string, number>;
+  koOddsByPair: Map<string, KnockoutOdds>; // live 1X2 for unplayed knockout fixtures
 }
 
 export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookData> {
@@ -62,6 +63,7 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
   const knockoutLosers = new Set<number>();
   const advancedTeams = new Set<number>(); // the real 32 drawn into the R32 (source of truth for "alive")
   const remainingGroupFixtures: RemainingGroupFixture[] = [];
+  const koOddsByPair = new Map<string, KnockoutOdds>();
   for (const m of matchesRes.data ?? []) {
     if (m.stage === "r32") {
       if (m.home_team_id != null) advancedTeams.add(m.home_team_id);
@@ -89,6 +91,18 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
       for (const id of [m.home_team_id, m.away_team_id]) {
         if (id != null && id !== m.winner_team_id) knockoutLosers.add(id);
       }
+    } else if (
+      m.stage && KO_STAGES.has(m.stage) && !isNotOccurring(m.status) &&
+      m.home_team_id != null && m.away_team_id != null &&
+      m.odds_home != null && m.odds_draw != null && m.odds_away != null
+    ) {
+      // Unplayed knockout fixture with cached live odds → market override for the sim.
+      koOddsByPair.set(pairKey(m.home_team_id, m.away_team_id), {
+        homeTeamId: m.home_team_id,
+        pHome: m.odds_home,
+        pDraw: m.odds_draw,
+        pAway: m.odds_away,
+      });
     }
   }
 
@@ -150,5 +164,5 @@ export async function loadOutlookData(admin: SupabaseClient): Promise<OutlookDat
     }
   }
 
-  return { scoring, entries, futureByTeam, oddsByTeam, teamMeta, remainingGroupFixtures, leaderTotal, realR32, terminalWinnerByPair };
+  return { scoring, entries, futureByTeam, oddsByTeam, teamMeta, remainingGroupFixtures, leaderTotal, realR32, terminalWinnerByPair, koOddsByPair };
 }
