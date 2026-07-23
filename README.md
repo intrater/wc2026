@@ -1,5 +1,7 @@
 # World Cup 2026 Fantasy Pool
 
+> **🏆 The tournament is over — this repo is now an archive.** The pool ran June 11 – July 19, 2026 with 27 entrants and came down to a 148–148 photo finish decided on the underdog tiebreaker (congrats, Zach F.). The live site is preserved as a fully static snapshot at **[wc2026.johnintrater.com](https://wc2026.johnintrater.com)** — every page frozen with the final data, no backend left running. The `ARCHIVE_MODE` freeze is part of this codebase (`lib/archive.ts`).
+
 A mobile-first web app to run the annual World Cup pool: draft one team from each of 12 odds-based tiers, picks lock at kickoff and go public, results auto-ingest from API-Football, and a public leaderboard tracks everyone with plain-English point breakdowns.
 
 - **Requirements:** `docs/brainstorms/2026-05-31-world-cup-pool-requirements.md`
