@@ -7,10 +7,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
 import { getPhase } from "@/lib/state/phase";
+import { isArchive } from "@/lib/archive";
 
 export type PoolAccess = "ok" | "signin" | "no-entry";
 
 export async function checkPoolAccess(): Promise<PoolAccess> {
+  // Frozen archive: the tournament is over and the snapshot is public — no gating.
+  if (isArchive) return "ok";
+
   const phase = await getPhase();
   if (!phase.isLocked) return "ok";
 

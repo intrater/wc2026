@@ -12,6 +12,7 @@ import type { TeamInfo } from "@/lib/views/data";
 import { PageTitle } from "@/components/PageTitle";
 import { LocalTime } from "@/components/LocalTime";
 import { BUCKET_LABEL } from "@/lib/outlook/rationale";
+import { isArchive } from "@/lib/archive";
 
 export const dynamic = "force-dynamic";
 
@@ -129,7 +130,9 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
             <span className="ml-1.5 text-sm text-muted-foreground">pts</span>
           </p>
         )}
-        {outlook && (
+        {/* The outlook is a live-tournament forecast — stale (and possibly wrong)
+            once the trophy is lifted, so the archive drops it. */}
+        {!isArchive && outlook && (
           <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
             <span className="font-semibold uppercase tracking-[0.14em] text-foreground">
               {outlook.clinched ? "Clinched" : BUCKET_LABEL[outlook.bucket as string] ?? ""}

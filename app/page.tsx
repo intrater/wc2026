@@ -22,6 +22,7 @@ import { RaceToFinishCard } from "@/components/RaceToFinishCard";
 import { computeGroupPrizes } from "@/lib/leaderboard/groupPrize";
 import { computePayouts, formatUsd, type PayoutSplit } from "@/lib/payouts/calc";
 import type { Recap, RecapStats } from "@/lib/db/types";
+import { isArchive } from "@/lib/archive";
 
 export const dynamic = "force-dynamic";
 
@@ -85,10 +86,11 @@ export default async function HomePage() {
            page — no "How it works" noise. Editing drops to the bottom, pre-lock only. */
         <>
           {/* Standings tick over during games without a manual reload. */}
-          <AutoRefresh />
+          {!isArchive && <AutoRefresh />}
           <DigestPreview supabase={supabase} />
           <TodaysMatches supabase={supabase} />
-          <TheRace />
+          {/* Another live forecast — the archive shows results, not odds. */}
+          {!isArchive && <TheRace />}
           <Leaderboard supabase={supabase} />
           {/* One action row, equal-width buttons. Pre-lock: Edit picks (primary) +
               Invite + Venmo-if-owing. Once the tournament is live, editing and
@@ -513,12 +515,20 @@ async function Leaderboard({ supabase }: { supabase: Awaited<ReturnType<typeof c
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="flex items-center gap-1.5 font-semibold">
                     <span className="truncate">{e?.display_name}</span>
-                    {!e?.paid && (
+                    {/* Settle-up nudges have no place in the frozen archive. */}
+                    {!isArchive && !e?.paid && (
                       <span className="shrink-0 rounded-full border border-border bg-card px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
                         Unpaid
                       </span>
                     )}
-                    {phase.isLocked && outlook && <OutlookBadge bucket={outlook.bucket} clinched={outlook.clinched} />}
+                    {/* Live: the chance-to-win forecast. Archive: the forecast is stale
+                        (it can't recompute past the final) — show the actual result. */}
+                    {!isArchive && phase.isLocked && outlook && <OutlookBadge bucket={outlook.bucket} clinched={outlook.clinched} />}
+                    {isArchive && r.rank <= 2 && (
+                      <span className="shrink-0 rounded-full bg-neon/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-neon">
+                        {r.rank === 1 ? "🏆 Champion" : "🥈 Runner-up"}
+                      </span>
+                    )}
                   </span>
                   {/* One meta line: teams-left (knockouts) or games played/left (group stage)
                       ALWAYS first for easy down-column scanning, then the group-stage prize. */}

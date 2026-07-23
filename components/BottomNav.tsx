@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/auth/server";
 import { getPhase } from "@/lib/state/phase";
+import { isArchive } from "@/lib/archive";
 import { BottomNavClient, type BottomNavItem } from "./BottomNavClient";
 
 /**
@@ -14,7 +15,8 @@ export async function BottomNav() {
   const [user, phase] = await Promise.all([getUser(), getPhase()]);
   let hasEntry = false;
   let entryId: string | null = null;
-  let isViewer = false;
+  // Frozen archive: every visitor gets the read-only viewer tabs.
+  let isViewer = isArchive;
   if (user) {
     const supabase = await createClient();
     const [{ data }, { data: profile }] = await Promise.all([

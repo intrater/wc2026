@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { isArchive } from "@/lib/archive";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Server Supabase client for Server Components, Server Actions, and Route Handlers.
@@ -7,6 +9,10 @@ import { cookies } from "next/headers";
  * code — use getClaims()/getUser(), which validate the JWT.
  */
 export async function createClient() {
+  // Archive builds render anonymously to static HTML, so RLS's entrant gating has
+  // nothing to key on — use the service client (local render only, never deployed).
+  if (isArchive) return createAdminClient();
+
   const cookieStore = await cookies();
 
   return createServerClient(

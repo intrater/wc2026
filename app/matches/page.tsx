@@ -13,6 +13,7 @@ import { PageTitle, TitleAccent } from "@/components/PageTitle";
 import { compareForLeaderboard } from "@/lib/scoring/engine";
 import type { Owner } from "@/lib/matches/rooting";
 import { MatchCard, type CalendarMatch, type ViewerPoints } from "./MatchCard";
+import { isArchive } from "@/lib/archive";
 
 export const dynamic = "force-dynamic";
 
@@ -198,7 +199,7 @@ export default async function MatchesPage() {
     <div className="space-y-3">
       <ScrollToNow />
       {/* Live scores tick over without a manual reload (60s, paused when hidden). */}
-      <AutoRefresh />
+      {!isArchive && <AutoRefresh />}
 
       <PageTitle sub={<>The full schedule, day by day, with live scores as they play.</>}>
         <TitleAccent>Matches</TitleAccent>
