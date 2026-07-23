@@ -38,3 +38,6 @@ yarn-error.log*
 /supabase/.temp
 .env*
 scripts/send-digest-sample.mts
+
+# entrant PII — scheduled-send receipts contain personal email addresses
+scripts/kickoff-scheduled.json

@@ -21,9 +21,8 @@ Use this to pick up from a fresh Claude Code session. Good first prompt:
   the match detail view.
 - **Endgame (2026-07-15, final set: Spain v Argentina, 3rd place France v England):**
   exact "if X wins the final" scenarios shipped (`lib/race/finalScenarios.ts`, pure +
-  tested, rendered atop the Race to the Finish card). Engine-verified: Spain wins → Zach
-  Fishman champion (148, underdog tiebreak 50.5 v 50) + Jeff Stallone runner-up (148);
-  Argentina wins (+1 upset, T2 over T1) → Michael Cranford champion (151) + Zach runner-up
+  tested, rendered atop the Race to the Finish card). Engine-verified: Spain wins → Zach F. champion (148, underdog tiebreak 50.5 v 50) + Jeff S. runner-up (148);
+  Argentina wins (+1 upset, T2 over T1) → Michael C. champion (151) + Zach runner-up
   (149). Third-place game + penalties provably can't move the money; Zach is locked into
   the top 2. Knockout fixtures now also get live market odds (`oddsRefresh.ts` no longer
   group-only; `playFixedBracket` takes a per-pair 1X2 override) — API-Football had no
